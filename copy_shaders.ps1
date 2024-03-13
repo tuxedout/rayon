@@ -1,0 +1,1 @@
+copy $args[0] F:\raylib\rayon-cpp-cmake\cmake-build-debug\shaders
