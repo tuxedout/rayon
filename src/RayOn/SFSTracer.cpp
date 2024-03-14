@@ -53,7 +53,7 @@ glm::vec3 BLACK(0,0,0);
 glm::vec3 RN::SFSTracer::trace(glm::vec2 &p, glm::vec2 &dir, const RN::Scene &scene, int depth) const {
     int step = 0;
 
-    float distance = 0.001;
+    float distance = 0.0;
 
     glm::vec3 srv_trace_res(0.0,0.0,0.0);
 
@@ -70,9 +70,9 @@ glm::vec3 RN::SFSTracer::trace(glm::vec2 &p, glm::vec2 &dir, const RN::Scene &sc
 
         scene.hit(sampling_point, hit_info);
 
-        distance += abs(hit_info.distance);
-
         sign = hit_info.distance < 0.0f ? -1.0f : 1.0f;
+
+        distance = distance + hit_info.distance;
 
         //printf("dis: %f", t);
         step++;
@@ -86,31 +86,31 @@ glm::vec3 RN::SFSTracer::trace(glm::vec2 &p, glm::vec2 &dir, const RN::Scene &sc
 
                 float refl = hit_info.item->material->reflectivity;
 
-                if (hit_info.item->material->eta > 0.0){
-                    glm::vec2 refracted_direction = dir;
-                    if (refract(refracted_direction, normal, sign < 0.0 ? hit_info.item->material->eta : 1.0f / hit_info.item->material->eta )){
-
-                        float cosi = -(dir.x * normal.x + dir.y * normal.y);
-
-                        float cost = -(refracted_direction.x * normal.x + refracted_direction.y * normal.y);
-
-                        refl = sign < 0.0f ? fresnel(cosi, cost, hit_info.item->material->eta, 1.0f) : fresnel(cosi, cost, 1.0f, hit_info.item->material->eta);
-                        refl = fmaxf(fminf(refl, 1.0f), 0.0f);
-
-                        sampling_point -= normal * (float)bias;
-                        //sampling_point = p + abs(hit_info.distance) * refracted_direction;
-
-                        srv_trace_res += (1.0f - refl) * trace(sampling_point, refracted_direction, scene, depth + 1);
-                    }else{
-                        refl = 1.0;
-                    }
-                }
+//                if (hit_info.item->material->eta > 0.0){
+//                    glm::vec2 refracted_direction = dir;
+//                    if (refract(refracted_direction, normal, sign < 0.0 ? hit_info.item->material->eta : 1.0f / hit_info.item->material->eta )){
+//
+//                        float cosi = -(dir.x * normal.x + dir.y * normal.y);
+//
+//                        float cost = -(refracted_direction.x * normal.x + refracted_direction.y * normal.y);
+//
+//                        refl = sign < 0.0f ? fresnel(cosi, cost, hit_info.item->material->eta, 1.0f) : fresnel(cosi, cost, 1.0f, hit_info.item->material->eta);
+//                        refl = fmaxf(fminf(refl, 1.0f), 0.0f);
+//
+//                        sampling_point -= normal * (float)bias;
+//                        //sampling_point = p + abs(hit_info.distance) * refracted_direction;
+//
+//                        srv_trace_res += (1.0f - refl) * trace(sampling_point, refracted_direction, scene, depth + 1);
+//                    }else{
+//                        refl = 1.0;
+//                    }
+//                }
 
                 if (refl > 0.0) {
                     glm::vec2 reflected_direction = reflect(dir, normal);
 
-                    sampling_point += normal * (float)bias;
-                    //sampling_point = p + abs(hit_info.distance) * reflected_direction;
+                    //sampling_point += normal * (float)bias;
+                    sampling_point = p + (hit_info.distance) * reflected_direction;
 
                     srv_trace_res += refl * trace(sampling_point, reflected_direction, scene, depth + 1);
                 }
@@ -122,7 +122,7 @@ glm::vec3 RN::SFSTracer::trace(glm::vec2 &p, glm::vec2 &dir, const RN::Scene &sc
             return srv_trace_res * beerLambert(hit_info.item->material->absorption, distance);
         }
 
-        p = p + dir*abs(hit_info.distance);
+        p = p + dir*(hit_info.distance);
     }
 
 
@@ -143,9 +143,9 @@ glm::vec3 RN::SFSTracer::sample(const glm::vec2 &p, const RN::Scene &scene) cons
     glm::vec3 result_color(0.0,0.0,0.0);
 
     for (int i = 0; i < samples_per_pixel; i++) {
-        //double rand_a = (rand01() - 0.5);
+        double rand_a = (rand01() - 0.5);
 
-        float rand_a = (glm::perlin(p * 100.0f) - 0.5) * 0.2;
+        //float rand_a = (glm::perlin(p * 100.0f) - 0.5) * 0.2;
 
         direction.x = (float)std::cos(a + rand_a );
         direction.y = (float)std::sin(a + rand_a );

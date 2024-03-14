@@ -1,11 +1,11 @@
 #include <cstdio>
 #include <chrono>
 #include <memory>
-#include <iostream>
 #include <vector>
 #include <algorithm>
 #include <random>
 #include <filesystem>
+#include <fstream>
 
 #include "raylib.h"
 #include "RayOn/Scene.h"
@@ -14,6 +14,10 @@
 #include "RayOn/SFBox.h"
 #include "System/ThreadSafeQueue.h"
 
+#include "json.hpp"
+
+using json = nlohmann::json;
+
 #if defined(PLATFORM_DESKTOP)
 #define GLSL_VERSION            330
 #else   // PLATFORM_ANDROID, PLATFORM_WEB
@@ -21,8 +25,8 @@
 #endif
 
 #define MAX_DISTANCE 15.0
-#define SAMPLES_P_PIX 64
-#define MAX_STEPS 20
+#define SAMPLES_P_PIX 16
+#define MAX_STEPS 10
 #define MAX_DEPTH 5
 #define EPSILON 0.0001
 
@@ -33,11 +37,45 @@ int segment_size = 20;
 
 std::atomic<std::chrono::time_point<std::chrono::high_resolution_clock>> lastFinished;
 
+// Определяем путь к файлу настроек
+const std::string settingsFilePath = "settings.json";
+
+// Значения по умолчанию
+int samplesPerPixel = 4; // Значение по умолчанию
+
+// Функция для загрузки настроек
+void LoadSettings() {
+    std::ifstream settingsFile(settingsFilePath);
+    if (settingsFile.is_open()) {
+        nlohmann::json settingsJson;
+        settingsFile >> settingsJson;
+        samplesPerPixel = settingsJson.value("samplesPerPixel", samplesPerPixel);
+    }
+}
+
+// Функция для сохранения настроек
+void SaveSettings() {
+    nlohmann::json settingsJson;
+    settingsJson["samplesPerPixel"] = samplesPerPixel;
+    std::ofstream settingsFile(settingsFilePath);
+    settingsFile << settingsJson.dump(4);
+}
+
 void EnsureDirectoryExists(const std::string& dirName) {
     std::filesystem::path dirPath{dirName};
     if (!std::filesystem::exists(dirPath)) {
         std::filesystem::create_directories(dirPath);
     }
+}
+
+std::string GenerateFileName() {
+    std::time_t now = std::time(nullptr);
+
+    char buf[20];
+    strftime(buf, sizeof(buf), "%Y-%m-%d_%H-%M-%S", std::localtime(&now));
+
+    std::string fileName = "screenshots/screenshot_" + std::string(buf) + ".png";
+    return fileName;
 }
 
 struct Segment {
@@ -75,7 +113,7 @@ struct Segment {
 };
 
 
-std::vector<Segment> createAndShuffleSegments(int screenWidth, int screenHeight, int segmentSize) {
+std::vector<Segment> CreateAndShuffleSegments(int screenWidth, int screenHeight, int segmentSize) {
     std::vector<Segment> segments;
 
     int segmentsX = (screenWidth + segmentSize - 1) / segmentSize;
@@ -101,7 +139,7 @@ std::vector<Segment> createAndShuffleSegments(int screenWidth, int screenHeight,
     return segments;
 }
 
-void renderSegment(Segment& segment, const RN::Scene& scene, RN::SFSTracer& tracer, ThreadSafeQueue<Segment>& queue) {
+void RenderSegment(Segment& segment, const RN::Scene& scene, RN::SFSTracer& tracer, ThreadSafeQueue<Segment>& queue) {
     glm::vec2 tmp_point(0.0, 0.0);
 
     glm::vec3 tmp_color(0.0,0.0,0.0);
@@ -141,6 +179,15 @@ ThreadSafeQueue<Segment> queue;
 
 int main()
 {
+    EnsureDirectoryExists("screenshots");
+
+    // misc service variables
+    bool show_message = false;
+    std::string message_text = "";
+    float message_time_left = 0.0f;
+    const float message_duration = 2.0f;
+
+
     // Initialization
     //--------------------------------------------------------------------------------------
     InitWindow(screen_width, screen_height, "RayOn");
@@ -184,7 +231,7 @@ int main()
     tracer.max_distance = MAX_DISTANCE;
     tracer.epsilon = EPSILON;
 
-    std::vector<Segment> segments = createAndShuffleSegments(screen_width, screen_height, segment_size);
+    std::vector<Segment> segments = CreateAndShuffleSegments(screen_width, screen_height, segment_size);
     std::vector<std::thread> threads;
 
     lastFinished = std::chrono::high_resolution_clock::now();
@@ -193,11 +240,18 @@ int main()
 
     threads.reserve(segments.size());
     for (auto& segment : segments) {
-        threads.emplace_back(renderSegment, std::ref(segment), std::cref(scene), std::ref(tracer), std::ref(queue));
+        threads.emplace_back(RenderSegment, std::ref(segment), std::cref(scene), std::ref(tracer), std::ref(queue));
     }
 
     SetTargetFPS(30);
     while (!WindowShouldClose()) {
+        if (show_message) {
+            message_time_left -= GetFrameTime();
+            if (message_time_left <= 0.0f) {
+                show_message = false;
+            }
+        }
+
         Segment segment;
         Rectangle rec;
         while (queue.try_pop(segment)) {
@@ -208,7 +262,19 @@ int main()
         BeginDrawing();
         ClearBackground(RAYWHITE);
         DrawTexture(texture, 0, 0, WHITE);
+        if (show_message) {
+            DrawText(message_text.c_str(), 10, 10, 20, RED);
+        }
         EndDrawing();
+
+        if (IsKeyPressed(KEY_S)) {
+            std::string file_name = GenerateFileName();
+            TakeScreenshot(file_name.c_str());
+
+            message_text = file_name + " saved!";
+            show_message = true;
+            message_time_left = message_duration;
+        }
     }
 
     for (auto& thread : threads) {
