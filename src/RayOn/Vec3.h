@@ -8,94 +8,137 @@
 #include "Vec2.h"
 
 namespace RN {
-    struct Vec3 {
-        int64_t x, y, z;
+    struct vec3 {
+    public:
+        double x, y, z;
 
-        Vec3(float _x, float _y, float _z) :
-            x(static_cast<int64_t>(_x * SCALE_FACTOR)),
-            y(static_cast<int64_t>(_y * SCALE_FACTOR)),
-            z(static_cast<int64_t>(_z * SCALE_FACTOR)) {}
+        vec3(double _x, double _y, double _z) :
+            x((_x)),
+            y((_y)),
+            z((_z)) {}
 
-        Vec3(int64_t _x, int64_t _y, int64_t _z) : x(_x), y(_y), z(_z) {}
+        vec3(const vec3 &other) = default;
 
-        [[nodiscard]] float getX() const { return static_cast<float>(x) / SCALE_FACTOR; }
-        [[nodiscard]] float getY() const { return static_cast<float>(y) / SCALE_FACTOR; }
-        [[nodiscard]] float getZ() const { return static_cast<float>(z) / SCALE_FACTOR; }
 
-        Vec3 operator+(const Vec3& other) const {
+        vec3(): x(0), y(0), z(0) {}
+
+        [[nodiscard]] vec3 abs() const {
+            return {std::abs(x), std::abs(y), std::abs(z)};
+        }
+
+        void normalize() {
+            auto len = length();
+            if (len == 0) return;
+            x = ((x) / len);
+            y = ((y) / len);
+            z = ((z) / len);
+        }
+
+        vec3 operator+(const vec3 &other) const {
             return {(x + other.x), (y + other.y), (z + other.z)};
         }
 
-        Vec3 operator-(const Vec3& other) const {
+        vec3 operator+=(const float &other) const {
+            return {x + (other), y + (other), z + (other) };
+        }
+
+        vec3 operator+=(const vec3 &other) const {
+            return {x + other.x, y + other.y, z + other.z };
+        }
+
+        vec3 operator+(const float &other) const {
+            return {x + (other), y + (other), z + (other) };
+        }
+
+        vec3 operator-(const vec3 &other) const {
             return {(x - other.x), (y - other.y) , (z - other.z)};
         }
 
-        Vec3 operator*(const Vec3& other) const {
-            return {(x * other.x), (y * other.y) , (z * other.z)};
+        vec3 operator-(const float &other) const {
+            return {x - (other), y - (other), z - (other) };
         }
 
-        Vec3 operator/(const int64_t &divider) const {
-            return {x / static_cast<int64_t>(divider * SCALE_FACTOR), y /  static_cast<int64_t>(divider * SCALE_FACTOR), z /  static_cast<int64_t>(divider * SCALE_FACTOR)};
+        vec3 operator/(const double &divider) const {
+            return {x / divider, y / divider, z / divider};
         }
 
-        Vec3 operator/(const Vec3 &other) const {
-            return {x / other.x, y / other.y, z / other.z};
+        vec3 operator*(const double &multiplier) const {
+            return {(x * multiplier), (y * (multiplier)), (z * (multiplier))};
         }
 
-        Vec3 operator*(const int64_t &multiplier) const {
-            return {(x * multiplier * SCALE_FACTOR), (y * multiplier * SCALE_FACTOR), (z * multiplier * SCALE_FACTOR)};
+        vec3 operator*(const vec3 &multiplier) const {
+            return {(x * ((multiplier.x))), (y * ((multiplier.y))), (z * ((multiplier.z)))};
         }
 
-        Vec3 operator*(const double &multiplier) const {
-            return {(x * static_cast<int64_t>(multiplier * SCALE_FACTOR)), (y * static_cast<int64_t>(multiplier * SCALE_FACTOR)), (z * static_cast<int64_t>(multiplier * SCALE_FACTOR))};
-        }
-
-        [[nodiscard]] int64_t dotFix(const Vec3 &a) const{
-            return a.x*x + a.y*y + a.z*a.z;
-        }
-
-        static float dot(const Vec3 &a, const Vec3 &b) {
-            return static_cast<float>(a.dotFix(b));
-        }
-
-        void add(const Vec3 &a) {
+        void add(const vec3 &a) {
             x += a.x;
             y += a.y;
             z += a.z;
         }
 
-        void sub(const Vec3 &a) {
+        void add(const double &a) {
+            x += (a) ;
+            y += (a);
+            z += (a);
+        }
+
+
+        void sub(const vec3 &a) {
             x -= a.x;
             y -= a.y;
             z -= a.z;
         }
 
-        void multiply(const Vec3 &a) {
-            x *= a.x;
-            y *= a.y;
-            z *= a.z;
+        void sub(const double &a) {
+            x -= (a);
+            y -= (a);
+            z -= (a);
         }
 
-        void
-
-        [[nodiscard]] float dot(const Vec3 &a) const {
-            return static_cast<float>(dotFix(a));
+        void multiply(const double &a) {
+            x *= (a);
+            y *= (a);
+            z *= (a);
         }
 
-        [[nodiscard]] float length() const {
-            auto lengthSquared = static_cast<float>(x * x + y * y + z * z);
-
-            return std::sqrt(lengthSquared) / SCALE_FACTOR;
+        void div(const double &a) {
+            x /= (a);
+            y /= (a);
+            z /= (a);
         }
 
-        [[nodiscard]] static float distance(const Vec3& v1, const Vec3& v2) {
-            int64_t dx = v1.x - v2.x;
-            int64_t dy = v1.y - v2.y;
-            int64_t dz = v1.z - v2.z;
+        [[nodiscard]] static double dot(const vec3 &a, const vec3 &b){
+            return a.x*b.x + a.y*b.y + a.z*b.z;
+        }
 
-            int64_t distSquared = dx * dx + dy * dy + dz * dz;
+        [[nodiscard]] double dot(const vec3 &a) const {
+            return a.x*x + a.y*y + a.z*z;
+        }
 
-            return std::sqrt(static_cast<float>(distSquared)) / SCALE_FACTOR;
+        [[nodiscard]] double length() const {
+            auto lengthSquared = (x * x + y * y + z * z);
+
+            return std::sqrt(lengthSquared);
+        }
+
+        [[nodiscard]] static double distance(const vec3& v1, const vec3& v2) {
+            double dx = v1.x - v2.x;
+            double dy = v1.y - v2.y;
+            double dz = v1.z - v2.z;
+
+            double distSquared = dx * dx + dy * dy + dz * dz;
+
+            return std::sqrt(distSquared) ;
+        }
+
+        [[nodiscard]] double distance(const vec3& a) const {
+            double dx = x - a.x;
+            double dy = y - a.y;
+            double dz = z - a.z;
+
+            double distSquared = dx * dx + dy * dy + dz * dz;
+
+            return std::sqrt(distSquared);
         }
     };
 }
