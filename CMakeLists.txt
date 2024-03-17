@@ -1,18 +1,37 @@
-cmake_minimum_required(VERSION 3.11) # FetchContent is new in version 3.11.
+cmake_policy(SET CMP0135 NEW)
+
+cmake_minimum_required(VERSION 3.14) # FetchContent is new in version 3.11.
 
 include(FetchContent)
-
 FetchContent_Declare(
         glm
-        GIT_REPOSITORY	https://github.com/g-truc/glm.git
-        GIT_TAG 	bf71a834948186f4097caa076cd2663c69a10e1e #refs/tags/1.0.1
+        GIT_REPOSITORY https://github.com/g-truc/glm.git
+        GIT_TAG origin/master
+        DOWNLOAD_EXTRACT_TIMESTAMP true
 )
 
-FetchContent_MakeAvailable(glm)
+FetchContent_GetProperties(glm)
+if(NOT glm_POPULATED)
+    FetchContent_Populate(glm)
+    add_subdirectory(${glm_SOURCE_DIR} ${glm_BINARY_DIR})
+endif()
+
+#FetchContent_Declare(
+#        googletest
+#        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+#        DOWNLOAD_EXTRACT_TIMESTAMP true
+#)
+## For Windows: Prevent overriding the parent project's compiler/linker settings
+#set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+#FetchContent_MakeAvailable(googletest)
 
 project(raylib_template C CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+
+set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
+
+set(CMAKE_CXX_STANDARD 20)
 
 # Setting parameters for raylib
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE) # don't build the supplied examples
@@ -44,31 +63,90 @@ add_executable(${PROJECT_NAME}-raycast src/main-raycast.cpp
         src/App/AppSettings.h
         src/Misc/Interval.h
         src/RayOn/Vec2.h
-        src/RayOn/Vec3.h)
+        src/RayOn/Vec3.h
+        src/RayOn/SDFLUT.cpp
+        src/RayOn/SDFLUT.h
+        src/System/ThreadPool.h
+        src/System/Segment.h)
 target_link_libraries(${PROJECT_NAME}-raycast PRIVATE raylib)
 target_link_libraries(${PROJECT_NAME}-raycast PRIVATE glm::glm)
 target_compile_definitions(${PROJECT_NAME}-raycast PUBLIC ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/") # Set the asset path macro to the absolute path on the dev machine
 #target_compile_definitions(${PROJECT_NAME} PUBLIC ASSETS_PATH="relative-path-to-assets-in-the-game-package") # Set the asset path macro in release mode
 
-# Установка переменной с путем к директории шейдеров
 set(SHADERS_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/shaders")
 
-# Установка переменной с целевой директорией для шейдеров
 set(SHADERS_DEST_DIR "${CMAKE_BINARY_DIR}/shaders")
 
-# Создание целевой директории для шейдеров
 file(MAKE_DIRECTORY ${SHADERS_DEST_DIR})
 
-# Список файлов шейдеров для копирования
 set(SHADER_FILES
         light.glsl
         debug.glsl
 )
 
-# Цикл по всем файлам шейдеров для их копирования и обновления при изменении
 foreach(SHADER ${SHADER_FILES})
     set(SOURCE "${SHADERS_SOURCE_DIR}/${SHADER}")
     set(DEST "${SHADERS_DEST_DIR}/${SHADER}")
 
     configure_file(${SOURCE} ${DEST} COPYONLY)
 endforeach()
+
+#enable_testing()
+#
+#add_executable(
+#        vec2_test
+#        src/Tests/vec2-tests.cpp
+#)
+#target_link_libraries(
+#        vec2_test
+#        GTest::gtest_main
+#)
+#
+#add_executable(
+#        vec3_test
+#        src/Tests/vec3-tests.cpp
+#        src/RayOn/Vec3.h
+#)
+#target_link_libraries(
+#        vec3_test
+#        GTest::gtest_main
+#)
+#
+#add_executable(scene_tests src/Tests/scene-tests.cpp
+#        src/RayOn/Material.cpp
+#        src/RayOn/Material.h
+#        src/RayOn/SFDrawable.cpp
+#        src/RayOn/SFDrawable.h
+#        src/RayOn/SFCircle.cpp
+#        src/RayOn/SFCircle.h
+#        src/RayOn/Scene.cpp
+#        src/RayOn/Scene.h
+#        src/RayOn/SFHitInfo.cpp
+#        src/RayOn/SFHitInfo.h
+#        src/RayOn/SFSTracer.cpp
+#        src/RayOn/SFSTracer.h
+#        src/RayOn/SFBox.cpp
+#        src/RayOn/SFBox.h
+#        src/System/ThreadSafeQueue.cpp
+#        src/System/ThreadSafeQueue.h
+#        src/json.hpp
+#        src/App/RayOnApp.cpp
+#        src/App/RayOnApp.h
+#        src/App/AppSettings.cpp
+#        src/App/AppSettings.h
+#        src/Misc/Interval.h
+#        src/RayOn/Vec2.h
+#        src/RayOn/Vec3.h
+#        src/RayOn/SDFLUT.cpp
+#        src/RayOn/SDFLUT.h
+#)
+#target_link_libraries(
+#        scene_tests
+#        GTest::gtest_main
+#
+#)
+#
+#include(GoogleTest)
+#gtest_discover_tests(vec2_test)
+#gtest_discover_tests(vec3_test)
+#gtest_discover_tests(scene_tests)

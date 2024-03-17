@@ -1,5 +1,5 @@
 //
-// Created by root on 11.03.2024.
+// Created by tux on 11.03.2024.
 //
 
 #ifndef RAYLIB_TEMPLATE_SFHITINFO_H
@@ -13,11 +13,11 @@ namespace RN {
     class SFHitInfo {
     public:
         SFHitInfo(): distance(0), item(nullptr){};
-        SFHitInfo(float d, SFDrawable *i): distance(d), item(i){};
+        SFHitInfo(double d, SFDrawable *i): distance(d), item(i){};
 
         SFHitInfo(const SFHitInfo &hi) = default;
 
-        float distance;
+        double distance;
 
         SFDrawable *item;
     };

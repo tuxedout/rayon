@@ -1,5 +1,5 @@
 //
-// Created by root on 14.03.2024.
+// Created by tux on 14.03.2024.
 //
 
 #include "AppSettings.h"
@@ -31,6 +31,21 @@ namespace RN {
             double _epsilon = RN_APP_EPSILON;
             _epsilon = settingsJson.value("epsilon", _epsilon);
             epsilon.setValue(_epsilon);
+        }
+    }
+
+    void AppSettings::saveSettings() {
+        std::ofstream settingsFile(settings_file_path);
+        if (settingsFile.is_open()) {
+            nlohmann::json settingsJson;
+            settingsJson["samples_per_pixel"] = samples_per_pixel;
+            settingsJson["bias"] = bias.getValue();
+            settingsJson["max_distance"] = max_distance.getValue();
+            settingsJson["max_depth"] = max_depth.getValue();
+            settingsJson["max_steps"] = max_steps.getValue();
+            settingsJson["epsilon"] = epsilon.getValue();
+            settingsFile << settingsJson.dump(4);
+            settingsFile.close();
         }
     }
 } // RN

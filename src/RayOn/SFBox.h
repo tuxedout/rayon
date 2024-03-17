@@ -1,5 +1,5 @@
 //
-// Created by root on 12.03.2024.
+// Created by tux on 12.03.2024.
 //
 
 #ifndef RAYLIB_TEMPLATE_SFBOX_H
@@ -12,15 +12,19 @@ namespace RN {
     class SFBox: public SFDrawable {
     public:
 
-        SFBox(glm::vec2 c, glm::vec2 s, std::shared_ptr<Material> &mat) : SFDrawable(mat), center(c), size(s) {
+        SFBox(vec2d c, vec2d s, std::shared_ptr<Material> &mat) : SFDrawable(mat), center(c), size(s) {
 
         }
 
-        glm::vec2 size;
-        glm::vec2 center;
+        SFBox(const SFBox &other): SFDrawable(other){
+            center = other.center;
+            size = other.size;
+        }
 
-        double distance(const glm::vec2 &p) override;
-        [[nodiscard]] glm::vec2 normal(const glm::vec2 &p) const override;
+        vec2d size;
+        vec2d center;
+
+        [[nodiscard]] double distance(const vec2d &p) const override;
 
         [[nodiscard]] SFDrawableType type() const override {return box;}
 

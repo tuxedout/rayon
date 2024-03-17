@@ -1,5 +1,5 @@
 //
-// Created by root on 11.03.2024.
+// Created by tux on 11.03.2024.
 //
 
 #ifndef RAYLIB_TEMPLATE_SFCIRCLE_H
@@ -12,12 +12,16 @@ namespace RN {
     class SFCircle : public SFDrawable {
     public:
         float radius;
-        glm::vec2 center;
+        vec2d center;
 
-        SFCircle(float r, glm::vec2 c, std::shared_ptr<Material> &mat): SFDrawable(mat), radius(r), center(c){}
+        SFCircle(float r, vec2d c, std::shared_ptr<Material> &mat): SFDrawable(mat), radius(r), center(c){}
 
-        double distance(const glm::vec2 &p) override;
-        [[nodiscard]] glm::vec2 normal(const glm::vec2 &p) const override;
+        SFCircle(const SFCircle &other) : SFDrawable(other) {
+            radius = other.radius;
+            center = other.center;
+        }
+
+        [[nodiscard]] double distance(const vec2d &p) const override;
 
         [[nodiscard]] SFDrawableType type() const override {return circle;}
 

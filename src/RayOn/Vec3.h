@@ -1,5 +1,5 @@
 //
-// Created by root on 14.03.2024.
+// Created by tux on 14.03.2024.
 //
 
 #ifndef RAYON_CPP_CMAKE_VEC3_H

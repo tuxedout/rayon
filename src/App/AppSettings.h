@@ -1,5 +1,5 @@
 //
-// Created by root on 14.03.2024.
+// Created by tux on 14.03.2024.
 //
 
 #ifndef RAYON_CPP_CMAKE_APPSETTINGS_H
@@ -42,6 +42,8 @@ namespace RN {
             return instance;
         }
 
+        /* getters */
+
         [[nodiscard]] int SamplesPerPixel() const{
             return samples_per_pixel;
         }
@@ -62,6 +64,12 @@ namespace RN {
             return bias.getValue();
         }
 
+        [[nodiscard]] int MaxSteps() const{
+            return max_steps.getValue();
+        }
+
+        /* step-by-step manipulation methods*/
+
         int MaxStepsUp() {
             return max_steps.stepUp();
         }
@@ -70,13 +78,40 @@ namespace RN {
             return max_steps.stepDown();
         }
 
+        int MaxDepthUp() {
+            return max_depth.stepUp();
+        }
+
+        int MaxDepthDown() {
+            return max_depth.stepDown();
+        }
+
+        double MaxDistanceUp() {
+            return max_distance.stepUp();
+        }
+
+        double MaxDistanceDown() {
+            return max_distance.stepDown();
+        }
+
+        double EpsilonUp() {
+            return epsilon.stepUp();
+        }
+
+        double EpsilonDown() {
+            return epsilon.stepDown();
+        }
+
+        /* load'n'save to file */
         void loadSettings();
         void saveSettings();
-    private:
         const std::string settings_file_path = "settings.json";
+    private:
 
         int samples_per_pixel = RN_APP_SAMPLES_P_PIX;
-        std::vector<int> samplesOptions = {4, 8, 16, 32, 64, 128, 256, 512, 1024};
+        // samples per pixel options
+        std::vector<int> SPP_OPTS = {4, 8, 16, 32, 64, 128, 256, 512, 1024};
+        //std::vector<int> STEPS_OPTS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 16, 32, 64, 128, 256};
 
         Interval<int> max_steps = {RN_APP_MAX_STEPS, 1, 256, 1};
         Interval<int> max_depth = {RN_APP_MAX_DEPTH, 0, 30, 1};

@@ -1,6 +1,24 @@
-//
-// Created by root on 14.03.2024.
-//
+/*
+ *
+ *       Created by tux on 14.03.2024.
+ *       ________   _______  ____ ____  _______  ____ ____
+ *      │----R---\ /---A---\ ----Y---- /---O---\│----N----\
+ *      │         │         │    │    │         │         │
+ *      │    ^    │    ^    │    │    │    ^    │    ^    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    ┼    │    ┼    │    ┼    │    ┼    │    │    │
+ *      │        (          \         │    │    │    │    │
+ *      │    ^    │    ^    │)        │    │    │    │    │
+ *      │    │    │    │    /         │    v    │    │    │
+ *      │    │    │    │    │        /│         │    │    │
+ *      │────│────│────│────│───────/  \_______/│____│____│
+ *
+ *      RayOn - simple rig to play with rays
+ *
+ *      provides value that can be changed step by step within defined limits
+ *
+ */
 
 #ifndef RAYON_CPP_CMAKE_INTERVAL_H
 #define RAYON_CPP_CMAKE_INTERVAL_H
@@ -20,8 +38,18 @@ namespace RN {
             return value;
         }
 
+        T stepUp(const int steps) {
+            value = (value + value_step * steps <= max_value) ? value + value_step * steps : max_value;
+            return value;
+        }
+
         T stepDown() {
             value = (value - value_step >= min_value) ? value - value_step : min_value;
+            return value;
+        }
+
+        T stepDown(const int steps) {
+            value = (value - value_step * steps >= min_value) ? value - value_step * steps : min_value;
             return value;
         }
 

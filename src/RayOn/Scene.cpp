@@ -1,28 +1,35 @@
 //
-// Created by root on 11.03.2024.
+// Created by tux on 11.03.2024.
 //
 
 #include "Scene.h"
 
-
-RN::SFHitInfo &RN::Scene::hit(const glm::vec2 &p, RN::SFHitInfo &hitInfo) const {
-    bool first = true;
-
-    glm::vec2 local_p = p;
+RN::SFHitInfo RN::Scene::hit(const vec2d &p) const {
+    RN::SFHitInfo hitInfo;
+    hitInfo.distance = std::numeric_limits<float>::max();
+    hitInfo.item = nullptr;
 
     for (const auto &item: children){
-        if (first) {
-            hitInfo.distance = item->distance(local_p);
-            hitInfo.item = &*item;
-            first = false;
-        } else {
-            float distance = item->distance(local_p);
+        double distance = item->distance(p);
 
-            if (distance < hitInfo.distance) {
-                hitInfo.distance = distance;
-                hitInfo.item = &*item;
-            }
+        if (distance < hitInfo.distance) {
+            hitInfo.distance = distance;
+            hitInfo.item = item.get();
         }
     }
     return hitInfo;
+}
+
+double RN::Scene::distance(const RN::vec2d &p) const {
+    double distance = std::numeric_limits<float>::max();
+    double tmp = std::numeric_limits<float>::max();
+    for (const auto &item: children) {
+        tmp = item->distance(p);
+
+        if (distance > tmp){
+            distance = tmp;
+        }
+    }
+
+    return distance;
 }

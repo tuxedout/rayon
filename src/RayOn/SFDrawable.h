@@ -1,13 +1,27 @@
 //
-// Created by root on 11.03.2024.
-//
+//       Created by tux on 11.03.2024.
+//       ________   _______  ____ ____  _______  ____ ____
+//      │----R---\ /---A---\ ----Y---- /---O---\│----N----\
+//      │         │         │    │    │         │         │
+//      │    ^    │    ^    │    │    │    ^    │    ^    │
+//      │    │    │    │    │    │    │    │    │    │    │
+//      │    │    │    │    │    │    │    │    │    │    │
+//      │    ┼    │    ┼    │    ┼    │    ┼    │    │    │
+//      │        (          \         │    │    │    │    │
+//      │    ^    │    ^    │)        │    │    │    │    │
+//      │    │    │    │    /         │    v    │    │    │
+//      │    │    │    │    │        /│         │    │    │
+//      │────│────│────│────│───────/  \_______/│____│____│
+//                                                                                                                                                
+//      RayOn - simple rig to play with rays
+//                                                                                                                                                
+//                                                                                                                                                
 
 #ifndef RAYLIB_TEMPLATE_SFDRAWABLE_H
 #define RAYLIB_TEMPLATE_SFDRAWABLE_H
 
-#include <glm/vec2.hpp>
-#include <glm/glm.hpp>
 #include "Material.h"
+#include "Vec2.h"
 #include <memory>
 
 namespace RN {
@@ -22,11 +36,14 @@ namespace RN {
     public:
         explicit SFDrawable(std::shared_ptr<Material> &mat): material(mat){}
 
-        virtual double distance(const glm::vec2 &p) = 0;
+        SFDrawable(const SFDrawable &other){
+            material = other.material;
+        }
+
+        virtual double distance(const vec2d &p) const = 0;
 
         ~SFDrawable() = default;
 
-        [[nodiscard]] virtual glm::vec2 normal(const glm::vec2 &p) const = 0;
         [[nodiscard]] virtual SFDrawableType type() const {return generic;}
 
         std::shared_ptr<Material> material;

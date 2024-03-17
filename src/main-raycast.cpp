@@ -1,11 +1,11 @@
 #include <cstdio>
 #include <chrono>
-#include <memory>
 #include <vector>
 #include <algorithm>
 #include <random>
 #include <filesystem>
 #include <fstream>
+#include <thread>
 
 #include "raylib.h"
 #include "RayOn/Scene.h"
@@ -15,51 +15,23 @@
 #include "System/ThreadSafeQueue.h"
 
 #include "json.hpp"
+#include "RayOn/SDFLUT.h"
+#include "System/ThreadPool.h"
+#include "System/Segment.h"
 
 using json = nlohmann::json;
 
-#if defined(PLATFORM_DESKTOP)
-#define GLSL_VERSION            330
-#else   // PLATFORM_ANDROID, PLATFORM_WEB
-#define GLSL_VERSION            100
-#endif
-
 #define MAX_DISTANCE 15.0
-#define SAMPLES_P_PIX 16
-#define MAX_STEPS 10
-#define MAX_DEPTH 5
-#define EPSILON 0.0001
+#define SAMPLES_P_PIX 32
+#define MAX_STEPS 16
+#define MAX_DEPTH 8
+#define EPSILON 0.001
 
-const int screen_width = 2000;
-const int screen_height = 1000;
+const int screen_width = 1000;
+const int screen_height = 500;
 
-int segment_size = 20;
+int segment_size = 32;
 
-std::atomic<std::chrono::time_point<std::chrono::high_resolution_clock>> lastFinished;
-
-// Определяем путь к файлу настроек
-const std::string settingsFilePath = "settings.json";
-
-// Значения по умолчанию
-int samplesPerPixel = 4; // Значение по умолчанию
-
-// Функция для загрузки настроек
-void LoadSettings() {
-    std::ifstream settingsFile(settingsFilePath);
-    if (settingsFile.is_open()) {
-        nlohmann::json settingsJson;
-        settingsFile >> settingsJson;
-        samplesPerPixel = settingsJson.value("samplesPerPixel", samplesPerPixel);
-    }
-}
-
-// Функция для сохранения настроек
-void SaveSettings() {
-    nlohmann::json settingsJson;
-    settingsJson["samplesPerPixel"] = samplesPerPixel;
-    std::ofstream settingsFile(settingsFilePath);
-    settingsFile << settingsJson.dump(4);
-}
 
 void EnsureDirectoryExists(const std::string& dirName) {
     std::filesystem::path dirPath{dirName};
@@ -78,42 +50,10 @@ std::string GenerateFileName() {
     return fileName;
 }
 
-struct Segment {
-    int x, y, width, height;
-    Color* data;
+ThreadSafeQueue<Segment> resultsQueue;
+ThreadSafeQueue<Segment> tasksQueue;
 
-    Segment() : x(0), y(0), width(0), height(0), data(nullptr) {}
-
-    Segment(const Segment& other)
-            : x(other.x), y(other.y), width(other.width), height(other.height), data(nullptr) {
-        if (other.data) {
-            data = new Color[width * height];
-            std::copy(other.data, other.data + width * height, data);
-        }
-    }
-
-    Segment& operator=(const Segment& other) {
-        if (this != &other) {
-
-            delete[] data;
-
-            x = other.x;
-            y = other.y;
-            width = other.width;
-            height = other.height;
-            data = new Color[width * height];
-            std::copy(other.data, other.data + width * height, data);
-        }
-        return *this;
-    }
-
-    ~Segment() {
-        delete[] data;
-    }
-};
-
-
-std::vector<Segment> CreateAndShuffleSegments(int screenWidth, int screenHeight, int segmentSize) {
+std::vector<Segment> CreateAndShuffleSegments(const int screenWidth, const int screenHeight, int segmentSize) {
     std::vector<Segment> segments;
 
     int segmentsX = (screenWidth + segmentSize - 1) / segmentSize;
@@ -126,6 +66,8 @@ std::vector<Segment> CreateAndShuffleSegments(int screenWidth, int screenHeight,
             segment.y = y * segmentSize;
             segment.width = std::min(segmentSize, screenWidth - segment.x);
             segment.height = std::min(segmentSize, screenHeight - segment.y);
+            segment.screen_width = screenWidth;
+            segment.screen_height = screenHeight;
 
             segment.data = new Color[segment.width * segment.height];
 
@@ -139,43 +81,30 @@ std::vector<Segment> CreateAndShuffleSegments(int screenWidth, int screenHeight,
     return segments;
 }
 
-void RenderSegment(Segment& segment, const RN::Scene& scene, RN::SFSTracer& tracer, ThreadSafeQueue<Segment>& queue) {
-    glm::vec2 tmp_point(0.0, 0.0);
-
-    glm::vec3 tmp_color(0.0,0.0,0.0);
-
-    Color clr;
-
-    for (int y = 0; y < segment.height; y++ ) {
-        for (int x = 0; x < segment.width; x++) {
-            tmp_point.x = (float) (segment.x + x - screen_width / 2.0) / screen_width;
-            tmp_point.y = (float) (segment.y + y - screen_height / 2.0) / screen_height;
+RN::SDFLUT *lut;
 
 
-            tmp_point.x *= (float)screen_width / screen_height;
+void logRenderStats(const RN::SFSTracer& tracer, long long totalDuration) {
+    // Получаем текущее время
+    auto now = std::chrono::system_clock::now();
+    auto now_time_t = std::chrono::system_clock::to_time_t(now);
 
-            tmp_color = tracer.sample(tmp_point, scene);
+    // Создаем поток для записи в файл
+    std::ofstream logFile("render.log", std::ios::app); // 'app' означает добавление в конец файла
 
-            clr.r = (int) (tmp_color.x * 255);
-            clr.g = (int) (tmp_color.y * 255);
-            clr.b = (int) (tmp_color.z * 255);
-            clr.a = 255;
+    // Устанавливаем формат для времени
+    logFile << std::put_time(std::localtime(&now_time_t), "%Y-%m-%d %H:%M:%S") << " - ";
 
-            segment.data[y * segment.width + x] = clr;
-        }
-    }
+    // Записываем информацию о рендеринге
+    logFile << "Time taken: " << totalDuration << " milliseconds\n";
+    logFile << "Samples per pixel: " << tracer.getSamplesPerPixel() << ", step angle: " << tracer.getStepAngle() << ", max steps: " << tracer.max_steps << ", max resursive call depth: " << tracer.max_depth << " max dist: " << tracer.max_distance << ", epsilon: " << tracer.epsilon << "\n";
+    // logFile << "Stats: traces: " << tracer.getTracesCount() << ", distance: " << tracer.getDistanceMeter() << ", hits: " << tracer.getHitsCount() << ", misses: " << tracer.getMissesCount() << "\n";
 
-    queue.push(segment);
-
-    auto endTime = std::chrono::high_resolution_clock::now();
-    std::chrono::time_point<std::chrono::high_resolution_clock> expected = lastFinished.load();
-
-    while (!lastFinished.compare_exchange_strong(expected, endTime) && expected < endTime) {
-        expected = lastFinished.load();
-    }
+    // Закрываем файл
+    logFile.close();
 }
 
-ThreadSafeQueue<Segment> queue;
+
 
 int main()
 {
@@ -183,10 +112,9 @@ int main()
 
     // misc service variables
     bool show_message = false;
-    std::string message_text = "";
+    std::string message_text;
     float message_time_left = 0.0f;
     const float message_duration = 2.0f;
-
 
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -197,32 +125,43 @@ int main()
     Image imBlank = GenImageColor(screen_width, screen_height, WHITE);
     Texture2D texture = LoadTextureFromImage(imBlank);  // Load blank texture to fill on shader
 
-    std::shared_ptr<RN::Material> mat0 = std::make_shared<RN::Material>(glm::vec3(0.40, 0.0, 0.00), glm::vec3 (0.0, 0.0, 0.0));
-    std::shared_ptr<RN::Material> mat1 = std::make_shared<RN::Material>(glm::vec3(0.3, 0.3, 0.2), glm::vec3 (0.0, 0.30, 0.20));
-    std::shared_ptr<RN::Material> mat2 = std::make_shared<RN::Material>(glm::vec3(0.150,  0.150,  0.150), glm::vec3  (0.04, 0.04, 0.03));
-    std::shared_ptr<RN::Material> mat3 = std::make_shared<RN::Material>(glm::vec3(0.10,  0.10, 0.10), glm::vec3 (1.0, 0.0, 0.0));
+    std::shared_ptr<RN::Material> mat0 = std::make_shared<RN::Material>(RN::vec3(0.87, 0.0, 0.0), RN::vec3 (0.0, 0.0, 0.0));
+    std::shared_ptr<RN::Material> mat1 = std::make_shared<RN::Material>(RN::vec3(0.95, 0.95, 0.95),    RN::vec3 (0.6, 0.30, 0.20));
+    std::shared_ptr<RN::Material> mat2 = std::make_shared<RN::Material>(RN::vec3(0.0,  0.0, 0.0), RN::vec3  (0.04, 0.04, 0.03));
+    std::shared_ptr<RN::Material> mat3 = std::make_shared<RN::Material>(RN::vec3(0.0,  0.0, 0.0), RN::vec3 (1.0, 0.0, 0.0));
+    std::shared_ptr<RN::Material> mat4 = std::make_shared<RN::Material>(RN::vec3(0.0,  0.0, 0.0), RN::vec3 (0.0, 0.0, 0.0));
+    std::shared_ptr<RN::Material> mat5 = std::make_shared<RN::Material>(RN::vec3(0.0,  0.65, 0.61), RN::vec3 (0.0, 0.0, 0.0));
 
-    mat0->reflectivity = 0.910;
-    mat0->eta = 0.0;
-    mat1->reflectivity = 1.0;
+    mat0->reflectivity = 0.20;
+    mat0->eta = 0.7;
+    mat1->reflectivity = 0.0;
     mat1->eta = 0.3;
-    mat2->reflectivity = 0.4;
-    mat2->eta = 1.4;
-    mat3->reflectivity = 0.51;
-    mat3->eta = 0.3;
+    mat2->reflectivity = 0.8;
+    mat2->eta = 0.7;
+    mat3->reflectivity = 0.91;
+    mat3->eta = 0.4;
+    mat4->reflectivity = 0.45;
+    mat4->eta = 0.1;
+    mat5->reflectivity = 0.0;
+    mat5->eta = 1.07;
 
-    RN::SFCircle circle(0.1, glm::vec2(0.25,-0.10), mat0);
-    RN::SFCircle circle2(0.03, glm::vec2(-0.1,0.0), mat1);
-    RN::SFBox box(glm::vec2(-0.35, 0.15), glm::vec2(0.01,0.25), mat2);
-    RN::SFBox box2(glm::vec2(-0.2, 0.35), glm::vec2(0.01,0.1), mat3);
+     RN::SFCircle circle(0.1, RN::vec2(0.25,-0.10), mat0);
+    RN::SFCircle circle2(0.03, RN::vec2(-0.26,0.350), mat1);
+    RN::SFBox box(RN::vec2(-0.35, 0.15), RN::vec2(0.01,0.25), mat2);
+    RN::SFBox box2(RN::vec2(-0.2, 0.3), RN::vec2(0.01,0.15), mat3);
+    RN::SFBox box3(RN::vec2(-0.1, 0.1), RN::vec2(0.01,0.15), mat4);
+    RN::SFBox box4(RN::vec2(-0.4, 0.0), RN::vec2(0.01,0.01), mat5);
 
-    RN::Scene scene;
+    RN::Scene scene(screen_width, screen_height);
 
     scene.addChild(std::make_shared<RN::SFCircle>(circle));
     scene.addChild(std::make_shared<RN::SFCircle>(circle2));
-    //scene.addChild(std::make_shared<RN::SFBox>(box));
+    scene.addChild(std::make_shared<RN::SFBox>(box));
     scene.addChild(std::make_shared<RN::SFBox>(box2));
+    scene.addChild(std::make_shared<RN::SFBox>(box3));
+    scene.addChild(std::make_shared<RN::SFBox>(box4));
 
+    lut = new RN::SDFLUT(scene);
     RN::SFSTracer tracer;
 
     tracer.setSamplesPerPixel(SAMPLES_P_PIX);
@@ -231,17 +170,17 @@ int main()
     tracer.max_distance = MAX_DISTANCE;
     tracer.epsilon = EPSILON;
 
-    std::vector<Segment> segments = CreateAndShuffleSegments(screen_width, screen_height, segment_size);
-    std::vector<std::thread> threads;
+    size_t threadsCount = std::thread::hardware_concurrency();
+    RN::ThreadPool pool(threadsCount, tasksQueue, scene, tracer, lut, resultsQueue);
 
-    lastFinished = std::chrono::high_resolution_clock::now();
+    std::vector<Segment> segments = CreateAndShuffleSegments(screen_width, screen_height, segment_size);
+
+    for (auto& segment : segments) {
+        tasksQueue.push(segment); // Добавляем задачи в очередь
+    }
 
     auto start = std::chrono::high_resolution_clock::now();  // Start timer
-
-    threads.reserve(segments.size());
-    for (auto& segment : segments) {
-        threads.emplace_back(RenderSegment, std::ref(segment), std::cref(scene), std::ref(tracer), std::ref(queue));
-    }
+    auto end = std::chrono::high_resolution_clock::now();  // Start timer
 
     SetTargetFPS(30);
     while (!WindowShouldClose()) {
@@ -254,9 +193,13 @@ int main()
 
         Segment segment;
         Rectangle rec;
-        while (queue.try_pop(segment)) {
+        while (resultsQueue.try_pop(segment)) {
             rec = { (float)segment.x, (float)segment.y, (float)segment.width, (float)segment.height };
             UpdateTextureRec(texture, rec, segment.data);
+
+            if (segment.end_time > end){
+                end = segment.end_time;
+            }
         }
 
         BeginDrawing();
@@ -275,30 +218,35 @@ int main()
             show_message = true;
             message_time_left = message_duration;
         }
-    }
 
-    for (auto& thread : threads) {
-        thread.join();
+        fflush(stdout);
     }
-
-    queue.finish();
 
 //    auto start = std::chrono::high_resolution_clock::now();  // Start timer
 //    auto stop = std::chrono::high_resolution_clock::now();  // Stop timer
 //    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 //    printf("Time taken by function: %lld milliseconds\n", duration.count());
 
-    auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(lastFinished.load() - start).count();
+    auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    printf("Time taken by function: %lld milliseconds\n", totalDuration);
+    printf("Time taken: %lld milliseconds\n", totalDuration);
 
     printf("Samples per pixel: %i, step angle: %f, max steps: %i, max dist: %f, epsilon: %f\n", tracer.getSamplesPerPixel(), tracer.getStepAngle(), tracer.max_steps, tracer.max_distance, tracer.epsilon);
-    printf("Stats: traces: %i, distance: %f, hits: %i, misses: %i\n", tracer.getTracesCount(), tracer.getDistanceMeter(), tracer.getHitsCount(), tracer.getMissesCount());
+    //printf("Stats: traces: %i, distance: %f, hits: %i, misses: %i\n", tracer.getTracesCount(), tracer.getDistanceMeter(), tracer.getHitsCount(), tracer.getMissesCount());
+
+    logRenderStats(tracer, totalDuration);
 
     // De-Initialization
     CloseWindow();
+
+    pool.stopIt();
+
+    delete lut;
 
     UnloadTexture(texture);
 
     return 0;
 }
+
+// Time taken by function: 8002 milliseconds
+// Samples per pixel: 16, step angle: 0.392699, max steps: 10, max dist: 15.000000, epsilon: 0.000100
