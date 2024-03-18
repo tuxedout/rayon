@@ -1,6 +1,24 @@
-//
-// Created by tux on 14.03.2024.
-//
+/*
+ *
+ *       Created by tux on 14.03.2024.
+ *       ________   _______  ____ ____  _______  ____ ____
+ *      │----R---\ /---A---\ ----Y---- /---O---\│----N----\
+ *      │         │         │    │    │         │         │
+ *      │    ^    │    ^    │    │    │    ^    │    ^    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    ┼    │    ┼    │    ┼    │    ┼    │    │    │
+ *      │        (          \         │    │    │    │    │
+ *      │    ^    │    ^    │)        │    │    │    │    │
+ *      │    │    │    │    /         │    v    │    │    │
+ *      │    │    │    │    │        /│         │    │    │
+ *      │────│────│────│────│───────/  \_______/│____│____│
+ *
+ *      RayOn - simple rig to play with rays
+ *
+ *      RayOnApp - application class to provide utility funcs.
+ *
+ */
 
 #include "RayOnApp.h"
 #include "raylib.h"
@@ -67,4 +85,3 @@ void RN::RayOnApp::ShowMessage(const std::string m) {
     show_message = true;
     message_time_left = MESSAGE_DURATION;
 }
-

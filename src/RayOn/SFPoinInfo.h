@@ -16,29 +16,31 @@
  *
  *      RayOn - simple rig to play with rays
  *
- *      Material - quite self explanatory
+ *      SFPoinInfo.h - contains info about distance field point
  *
  */
-#ifndef RAYLIB_TEMPLATE_MATERIAL_H
-#define RAYLIB_TEMPLATE_MATERIAL_H
+#ifndef RAYLIB_TEMPLATE_SFPOININFO_H
+#define RAYLIB_TEMPLATE_SFPOININFO_H
 
-
-#include "Vec3.h"
+#include "Material.h"
+#include "SFDrawable.h"
+#include <memory>
 
 namespace RN {
-
-    class Material {
+    class SFPoinInfo {
     public:
-        Material(vec3 e, vec3 a): emission(e), absorption(a){};
-        Material(): emission(vec3 ()), absorption(vec3()) {};
+        SFPoinInfo(): distance(0), item(nullptr){};
+        SFPoinInfo(double d, SFDrawable *i): distance(d), item(i){};
 
-        vec3 emission;
-        vec3 absorption;
+        SFPoinInfo(const SFPoinInfo &hi) = default;
 
-        float reflectivity = 0.0; //0 - no reflections
-        float eta = 1.0; // 1.0 - air
+        // distance to nearest object
+        double distance;
+
+        // pointer to nearest object
+        SFDrawable *item;
     };
 }
 
 
-#endif //RAYLIB_TEMPLATE_MATERIAL_H
+#endif //RAYLIB_TEMPLATE_SFPOININFO_H

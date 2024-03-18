@@ -1,6 +1,6 @@
 /*
  *
- *       Created by tux on 11.03.2024.
+ *       Created by tux on 14.03.2024.
  *       ________   _______  ____ ____  _______  ____ ____
  *      │----R---\ /---A---\ ----Y---- /---O---\│----N----\
  *      │         │         │    │    │         │         │
@@ -48,21 +48,22 @@ namespace RN {
         void Init();
         void HandleUserInput();
 
-        /*
-         * proceed routines
-         * draws things so has to be placed between
-         * BeginDrawing();
-         * &
-         * EndDrawing();
-         */
+
+         // proceed routines
+         // draws things so has to be placed between
+         // ! BeginDrawing();
+         //         &
+         // ! EndDrawing();
         void Run();
     private:
         void MakeScreenshot();
         static void EnsureScreenshotsDirExists();
         std::string GenerateScreenshotFileName();
 
+        // current mode
         RayOnAppMode mode = start;
 
+        // rendering settings
         AppSettings settings;
 
         /*

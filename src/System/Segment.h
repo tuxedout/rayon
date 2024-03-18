@@ -1,7 +1,24 @@
-//
-// Created by root on 17.03.2024.
-//
-
+/*
+ *
+ *       Created by tux on 17.03.2024.
+ *       ________   _______  ____ ____  _______  ____ ____
+ *      │----R---\ /---A---\ ----Y---- /---O---\│----N----\
+ *      │         │         │    │    │         │         │
+ *      │    ^    │    ^    │    │    │    ^    │    ^    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    ┼    │    ┼    │    ┼    │    ┼    │    │    │
+ *      │        (          \         │    │    │    │    │
+ *      │    ^    │    ^    │)        │    │    │    │    │
+ *      │    │    │    │    /         │    v    │    │    │
+ *      │    │    │    │    │        /│         │    │    │
+ *      │────│────│────│────│───────/  \_______/│____│____│
+ *
+ *      RayOn - simple rig to play with rays
+ *
+ *      Segment structure that contains data needed to define rendering task and represent it's results
+ *
+ */
 #ifndef RAYLIB_TEMPLATE_SEGMENT_H
 #define RAYLIB_TEMPLATE_SEGMENT_H
 
@@ -13,11 +30,23 @@
 #include <filesystem>
 #include <fstream>
 #include <thread>
+
 #include "raylib.h"
 
 struct Segment {
-    int x, y, width, height, screen_width, screen_height;
+        // segment pixel position in screen coordinates
+    int x,y,
+        // segment pixel size
+        width,
+        height,
+        // needed for renderer
+        // TODO: manage to remove them
+        screen_width, screen_height;
+
+    // rendering results
     Color* data;
+
+    // task finish time
     std::chrono::time_point<std::chrono::high_resolution_clock> end_time = std::chrono::high_resolution_clock::now();
 
     Segment() : x(0), y(0), width(0), height(0), screen_width(0), screen_height(0), data(nullptr) {}

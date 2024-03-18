@@ -1,6 +1,24 @@
-//
-// Created by tux on 14.03.2024.
-//
+/*
+ *
+ *       Created by tux on 14.03.2024.
+ *       ________   _______  ____ ____  _______  ____ ____
+ *      │----R---\ /---A---\ ----Y---- /---O---\│----N----\
+ *      │         │         │    │    │         │         │
+ *      │    ^    │    ^    │    │    │    ^    │    ^    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    ┼    │    ┼    │    ┼    │    ┼    │    │    │
+ *      │        (          \         │    │    │    │    │
+ *      │    ^    │    ^    │)        │    │    │    │    │
+ *      │    │    │    │    /         │    v    │    │    │
+ *      │    │    │    │    │        /│         │    │    │
+ *      │────│────│────│────│───────/  \_______/│____│____│
+ *
+ *      RayOn - simple rig to play with rays
+ *
+ *      vec3 represents 3D
+ *
+ */
 
 #ifndef RAYON_CPP_CMAKE_VEC3_H
 #define RAYON_CPP_CMAKE_VEC3_H
@@ -38,13 +56,13 @@ namespace RN {
             return {(x + other.x), (y + other.y), (z + other.z)};
         }
 
-        vec3 operator+=(const float &other) const {
-            return {x + (other), y + (other), z + (other) };
-        }
-
-        vec3 operator+=(const vec3 &other) const {
-            return {x + other.x, y + other.y, z + other.z };
-        }
+//        vec3 operator+=(const float &other) const {
+//            return {x + (other), y + (other), z + (other) };
+//        }
+//
+//        vec3 operator+=(const vec3 &other) const {
+//            return {x + other.x, y + other.y, z + other.z };
+//        }
 
         vec3 operator+(const float &other) const {
             return {x + (other), y + (other), z + (other) };

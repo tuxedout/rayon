@@ -1,15 +1,34 @@
-//
-// Created by tux on 11.03.2024.
-//
-
+/*
+ *
+ *       Created by tux on 11.03.2024.
+ *       ________   _______  ____ ____  _______  ____ ____
+ *      │----R---\ /---A---\ ----Y---- /---O---\│----N----\
+ *      │         │         │    │    │         │         │
+ *      │    ^    │    ^    │    │    │    ^    │    ^    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    ┼    │    ┼    │    ┼    │    ┼    │    │    │
+ *      │        (          \         │    │    │    │    │
+ *      │    ^    │    ^    │)        │    │    │    │    │
+ *      │    │    │    │    /         │    v    │    │    │
+ *      │    │    │    │    │        /│         │    │    │
+ *      │────│────│────│────│───────/  \_______/│____│____│
+ *
+ *      RayOn - simple rig to play with rays
+ *
+ *      SFSTracer contains rendering/tracing/sampling functions
+ *
+ */
 #ifndef RAYLIB_TEMPLATE_SFSTRACER_H
 #define RAYLIB_TEMPLATE_SFSTRACER_H
 
+#include <cmath>
+
 #include "Scene.h"
 #include "SFCircle.h"
-#include <cmath>
 #include "Vec2.h"
 #include "Vec3.h"
+
 #include "SDFLUT.h"
 
 const double RN_PI = 3.1415926535897932384626433832795;
@@ -32,16 +51,27 @@ namespace RN {
 
 //        glm::vec2 direction;
 
+        // maximum ray length
         float max_distance = 1.0;
+        // trace function limit of recursive calls
         int max_depth = 10;
-        double epsilon = 0.000001;
+
+        //
+        double epsilon = 0.00001;
+
+        // maximum steps per ray
         int max_steps = 10;
+
+        // not used now
         double bias = 0.0001;
 
+        // sample point: cast rays in each direction(directions count = samples_per_pixel)
         [[nodiscard]] vec3 sample(const vec2d &p, const Scene &scene, SDFLUT *lut);
 
-        vec3 trace(const vec2d &p, vec2d &dir, const Scene &scene, int depth, const SDFLUT *lut, double &distance);
+        // trace ray from point in pointed by dir
+        vec3 trace( vec2d &p, vec2d &dir, const Scene &scene, int depth, const SDFLUT *lut, double &distance, int &step);
 
+        // set samples_per_pixel and update dep. things
         void setSamplesPerPixel(int s){
             samples_per_pixel = s;
             step_angle = RN_PI * 2 / samples_per_pixel;
@@ -78,11 +108,16 @@ namespace RN {
         float distance_meter = 0.0;
         // !STAT!
 
+        // angle between rays casted by sample
         double step_angle = 0;
+
         int samples_per_pixel = 16;
-        //RN::vec3 result_color;
+
+        // TODO: consider putting things in order
+        RN::vec3 result_color;
         //RN::vec2d tracing_point;
-        //RN::vec2d sampling_point;
+        RN::vec2d sampling_point;
+        RN::vec2d direction;
 
         /*
          *

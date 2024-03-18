@@ -4,8 +4,8 @@
 
 #include "Scene.h"
 
-RN::SFHitInfo RN::Scene::hit(const vec2d &p) const {
-    RN::SFHitInfo hitInfo;
+RN::SFPoinInfo RN::Scene::hit(const vec2d &p) const {
+    RN::SFPoinInfo hitInfo;
     hitInfo.distance = std::numeric_limits<float>::max();
     hitInfo.item = nullptr;
 

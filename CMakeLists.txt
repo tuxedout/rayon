@@ -40,19 +40,14 @@ set(BUILD_GAMES    OFF CACHE BOOL "" FORCE) # or games
 add_subdirectory(libs/raylib)
 
 add_executable(${PROJECT_NAME}-raycast src/main-raycast.cpp
-        src/RayOn/Material.cpp
         src/RayOn/Material.h
-        src/RayOn/SFDrawable.cpp
         src/RayOn/SFDrawable.h
-        src/RayOn/SFCircle.cpp
         src/RayOn/SFCircle.h
         src/RayOn/Scene.cpp
         src/RayOn/Scene.h
-        src/RayOn/SFHitInfo.cpp
-        src/RayOn/SFHitInfo.h
+        src/RayOn/SFPoinInfo.h
         src/RayOn/SFSTracer.cpp
         src/RayOn/SFSTracer.h
-        src/RayOn/SFBox.cpp
         src/RayOn/SFBox.h
         src/System/ThreadSafeQueue.cpp
         src/System/ThreadSafeQueue.h
@@ -90,63 +85,3 @@ foreach(SHADER ${SHADER_FILES})
 
     configure_file(${SOURCE} ${DEST} COPYONLY)
 endforeach()
-
-#enable_testing()
-#
-#add_executable(
-#        vec2_test
-#        src/Tests/vec2-tests.cpp
-#)
-#target_link_libraries(
-#        vec2_test
-#        GTest::gtest_main
-#)
-#
-#add_executable(
-#        vec3_test
-#        src/Tests/vec3-tests.cpp
-#        src/RayOn/Vec3.h
-#)
-#target_link_libraries(
-#        vec3_test
-#        GTest::gtest_main
-#)
-#
-#add_executable(scene_tests src/Tests/scene-tests.cpp
-#        src/RayOn/Material.cpp
-#        src/RayOn/Material.h
-#        src/RayOn/SFDrawable.cpp
-#        src/RayOn/SFDrawable.h
-#        src/RayOn/SFCircle.cpp
-#        src/RayOn/SFCircle.h
-#        src/RayOn/Scene.cpp
-#        src/RayOn/Scene.h
-#        src/RayOn/SFHitInfo.cpp
-#        src/RayOn/SFHitInfo.h
-#        src/RayOn/SFSTracer.cpp
-#        src/RayOn/SFSTracer.h
-#        src/RayOn/SFBox.cpp
-#        src/RayOn/SFBox.h
-#        src/System/ThreadSafeQueue.cpp
-#        src/System/ThreadSafeQueue.h
-#        src/json.hpp
-#        src/App/RayOnApp.cpp
-#        src/App/RayOnApp.h
-#        src/App/AppSettings.cpp
-#        src/App/AppSettings.h
-#        src/Misc/Interval.h
-#        src/RayOn/Vec2.h
-#        src/RayOn/Vec3.h
-#        src/RayOn/SDFLUT.cpp
-#        src/RayOn/SDFLUT.h
-#)
-#target_link_libraries(
-#        scene_tests
-#        GTest::gtest_main
-#
-#)
-#
-#include(GoogleTest)
-#gtest_discover_tests(vec2_test)
-#gtest_discover_tests(vec3_test)
-#gtest_discover_tests(scene_tests)

@@ -1,6 +1,24 @@
-//
-// Created by tux on 14.03.2024.
-//
+/*
+ *
+ *       Created by tux on 14.03.2024.
+ *       ________   _______  ____ ____  _______  ____ ____
+ *      │----R---\ /---A---\ ----Y---- /---O---\│----N----\
+ *      │         │         │    │    │         │         │
+ *      │    ^    │    ^    │    │    │    ^    │    ^    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    ┼    │    ┼    │    ┼    │    ┼    │    │    │
+ *      │        (          \         │    │    │    │    │
+ *      │    ^    │    ^    │)        │    │    │    │    │
+ *      │    │    │    │    /         │    v    │    │    │
+ *      │    │    │    │    │        /│         │    │    │
+ *      │────│────│────│────│───────/  \_______/│____│____│
+ *
+ *      RayOn - simple rig to play with rays
+ *
+ *      vec2 represents 2D
+ *
+ */
 
 #ifndef RAYON_CPP_CMAKE_VEC2_H
 #define RAYON_CPP_CMAKE_VEC2_H
@@ -125,6 +143,11 @@ namespace RN {
             T distSquared = dx * dx + dy * dy ;
 
             return std::sqrt(distSquared);
+        }
+
+        void max(const T &param) {
+            x = x > param ? x : param;
+            y = y > param ? y : param;
         }
     };
 

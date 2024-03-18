@@ -15,8 +15,7 @@
 //                                                                                                                                                
 //      RayOn - simple rig to play with rays
 //                                                                                                                                                
-//                                                                                                                                                
-
+//
 #ifndef RAYLIB_TEMPLATE_SFDRAWABLE_H
 #define RAYLIB_TEMPLATE_SFDRAWABLE_H
 

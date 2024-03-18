@@ -1,7 +1,24 @@
-//
-// Created by tux on 12.03.2024.
-//
-
+/*
+ *
+ *       Created by tux on 11.03.2024.
+ *       ________   _______  ____ ____  _______  ____ ____
+ *      │----R---\ /---A---\ ----Y---- /---O---\│----N----\
+ *      │         │         │    │    │         │         │
+ *      │    ^    │    ^    │    │    │    ^    │    ^    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    │    │    │    │    │    │    │    │    │    │
+ *      │    ┼    │    ┼    │    ┼    │    ┼    │    │    │
+ *      │        (          \         │    │    │    │    │
+ *      │    ^    │    ^    │)        │    │    │    │    │
+ *      │    │    │    │    /         │    v    │    │    │
+ *      │    │    │    │    │        /│         │    │    │
+ *      │────│────│────│────│───────/  \_______/│____│____│
+ *
+ *      RayOn - simple rig to play with rays
+ *
+ *      SDFBox
+ *
+ */
 #ifndef RAYLIB_TEMPLATE_SFBOX_H
 #define RAYLIB_TEMPLATE_SFBOX_H
 
@@ -24,7 +41,18 @@ namespace RN {
         vec2d size;
         vec2d center;
 
-        [[nodiscard]] double distance(const vec2d &p) const override;
+        [[nodiscard]] double distance(const vec2d &p) const override {
+
+            RN::vec2d srv_d;
+
+            srv_d = (center - p).abs() - size;
+
+            double min_max = std::fmin(std::fmax(srv_d.x, srv_d.y), 0.0);
+
+            srv_d.max(0);
+
+            return srv_d.length() + min_max;
+        }
 
         [[nodiscard]] SFDrawableType type() const override {return box;}
 
