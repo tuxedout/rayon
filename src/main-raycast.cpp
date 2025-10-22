@@ -34,14 +34,16 @@
 #include "json.hpp"
 using json = nlohmann::json;
 
-#include "RayOn/Scene.h"
+#include "RayOn/SFScene.h"
+#include "RayOn/SFTriangle.h"
 #include "RayOn/SFCircle.h"
-#include "RayOn/SFSTracer.h"
+#include "RayOn/SFSampler.h"
 #include "RayOn/SFBox.h"
 #include "System/ThreadSafeQueue.h"
 #include "RayOn/SDFLUT.h"
 #include "System/ThreadPool.h"
 #include "System/Segment.h"
+#include "App/RayOnApp.h"
 
 /*
  * screen and rendering settings
@@ -49,11 +51,11 @@ using json = nlohmann::json;
 const int screen_width = 2000;
 const int screen_height = 1000;
 int segment_size = 40;
-#define MAX_DISTANCE 2.50
-#define SAMPLES_P_PIX 256
-#define MAX_STEPS 128
+#define MAX_DISTANCE 1.50
+#define SAMPLES_P_PIX 128
+#define MAX_STEPS 64
 #define MAX_DEPTH 10
-#define EPSILON 0.0001
+#define EPSILON 0.001
 
 // TODO: move to RayOnApp
 std::string GenerateFileName() {
@@ -69,7 +71,9 @@ std::string GenerateFileName() {
 ThreadSafeQueue<Segment> results_queue; // rendering results
 ThreadSafeQueue<Segment> tasks_queue; // rendering tasks
 
-RN::SDFLUT *lut; // LUT table, contains SDF data, calculates normal from distance field gradient
+RN::RayOnApp app;
+
+; // LUT table, contains SDF data, calculates normal from distance field gradient
 
 // split screen into small pieces and use them to create rendering tasks
 std::vector<Segment> CreateAndShuffleSegments(const int screenWidth, const int screenHeight, int segmentSize) {
@@ -104,7 +108,7 @@ std::vector<Segment> CreateAndShuffleSegments(const int screenWidth, const int s
 }
 
 // TODO: move to RayOnApp
-void logRenderStats(const RN::SFSTracer& tracer, long long totalDuration) {
+void logRenderStats(const RN::SFSampler& tracer, long long totalDuration) {
 
     auto now = std::chrono::system_clock::now();
     auto now_time_t = std::chrono::system_clock::to_time_t(now);
@@ -115,7 +119,7 @@ void logRenderStats(const RN::SFSTracer& tracer, long long totalDuration) {
 
     logFile << "Time taken: " << totalDuration << " milliseconds\n";
     logFile << "Samples per pixel: " << tracer.getSamplesPerPixel() << ", step angle: " << tracer.getStepAngle() << ", max steps: " << tracer.max_steps << ", max resursive call depth: " << tracer.max_depth << " max dist: " << tracer.max_distance << ", epsilon: " << tracer.epsilon << "\n";
-    // logFile << "Stats: traces: " << tracer.getTracesCount() << ", distance: " << tracer.getDistanceMeter() << ", hits: " << tracer.getHitsCount() << ", misses: " << tracer.getMissesCount() << "\n";
+    // logFile << "Stats: traces: " << sampler.getTracesCount() << ", distance: " << sampler.getDistanceMeter() << ", hits: " << sampler.getHitsCount() << ", misses: " << sampler.getMissesCount() << "\n";
 
     logFile.close();
 }
@@ -139,14 +143,14 @@ int main()
 
     // scene setup
     // materials
-    std::shared_ptr<RN::Material> mat0 = std::make_shared<RN::Material>(RN::vec3(0.87, 0.0, 1.0), RN::vec3 (0.0, 0.50, 0.0));
-    std::shared_ptr<RN::Material> mat1 = std::make_shared<RN::Material>(RN::vec3(0.95, 0.95, 0.95),    RN::vec3 (0.6, 0.30, 0.20));
-    std::shared_ptr<RN::Material> mat2 = std::make_shared<RN::Material>(RN::vec3(0.0,  0.0, 0.0), RN::vec3  (1.0, 0.2, 0.0));
-    std::shared_ptr<RN::Material> mat3 = std::make_shared<RN::Material>(RN::vec3(0.0,  0.0, 0.0), RN::vec3 (0.9, 0.4, 0.5));
-    std::shared_ptr<RN::Material> mat4 = std::make_shared<RN::Material>(RN::vec3(0.0,  0.740, 0.730), RN::vec3 (0.5, 0.0, 0.0));
-    std::shared_ptr<RN::Material> mat5 = std::make_shared<RN::Material>(RN::vec3(1.50,  0.95, 0.0), RN::vec3 (0.0, 0.0, 0.0));
+    std::shared_ptr<RN::Material> mat0 = std::make_shared<RN::Material>(RN::vec3(0.87, 0.10, 0.0), RN::vec3 (0.0, 0.10, 0.0));
+    std::shared_ptr<RN::Material> mat1 = std::make_shared<RN::Material>(RN::vec3(1.95, 1.95, 0.95),    RN::vec3 (0.0, 0.30, 0.20));
+    std::shared_ptr<RN::Material> mat2 = std::make_shared<RN::Material>(RN::vec3(0.0,  0.0, 0.0), RN::vec3  (0.0, 0.2, 0.0));
+    std::shared_ptr<RN::Material> mat3 = std::make_shared<RN::Material>(RN::vec3(0.0,  0.0, 0.0), RN::vec3 (0.2, 0.4, 0.15));
+    std::shared_ptr<RN::Material> mat4 = std::make_shared<RN::Material>(RN::vec3(0.0,  0.0, 0.730), RN::vec3 (0.05, 0.03, 0.0));
+    std::shared_ptr<RN::Material> mat5 = std::make_shared<RN::Material>(RN::vec3(0.9,  0.95, 0.0), RN::vec3 (0.150, 0.10, 0.050));
 
-    mat0->reflectivity = 0.5    ;
+    mat0->reflectivity = 0.9;
     mat0->eta = 1.7;
     mat1->reflectivity = 0.3;
     mat1->eta = 1.3;
@@ -154,12 +158,13 @@ int main()
     mat2->eta = 1.7;
     mat3->reflectivity = 0.1;
     mat3->eta = 1.4;
-    mat4->reflectivity = 0.1;
-    mat4->eta = 1.7;
-    mat5->reflectivity = 0.3;
-    mat5->eta = 1.97;
+    mat4->reflectivity = 0.15;
+    mat4->eta = 3.7;
+    mat5->reflectivity = 0.6;
+    mat5->eta = 2.9;
 
     // scene objects
+    RN::SFTriangle triangle(0.25, 0.25, RN::vec2d(0.5, -0.15), mat5);
     RN::SFCircle circle(0.1, RN::vec2(0.25,-0.30), mat0);
     RN::SFCircle circle2(0.03, RN::vec2(-0.26,0.350), mat1);
     RN::SFBox box(RN::vec2(-0.35, 0.15), RN::vec2(0.01,0.25), mat2);
@@ -167,7 +172,7 @@ int main()
     RN::SFBox box3(RN::vec2(0.1, 0.1), RN::vec2(0.1,0.15), mat4);
     RN::SFBox box4(RN::vec2(-0.02, 0.0), RN::vec2(0.01,0.01), mat5);
 
-    RN::Scene scene(screen_width, screen_height);
+    RN::SFScene scene(screen_width, screen_height);
 
     scene.addChild(std::make_shared<RN::SFCircle>(circle));
     scene.addChild(std::make_shared<RN::SFCircle>(circle2));
@@ -175,13 +180,14 @@ int main()
     scene.addChild(std::make_shared<RN::SFBox>(box2));
     scene.addChild(std::make_shared<RN::SFBox>(box3));
     scene.addChild(std::make_shared<RN::SFBox>(box4));
+    scene.addChild(std::make_shared<RN::SFTriangle>(triangle));
 
     // SDF LUT contains screen-wide signed distance values
     // also calculates normal
-    lut = new RN::SDFLUT(scene);
+    RN::SDFLUT lut(scene);
 
-    // tracer-sampler-renderer, soul of machine
-    RN::SFSTracer tracer;
+    // sampler-sampler-renderer, soul of machine
+    RN::SFSampler tracer;
 
     // set default rendering settings
     tracer.setSamplesPerPixel(SAMPLES_P_PIX);
@@ -194,12 +200,12 @@ int main()
     size_t threads_count = std::thread::hardware_concurrency();
 
     // heart of parallelism, pool of rendering threads
-    // creates threads_count x threads, every thread receives own copy of scene and tracer,
+    // creates threads_count x threads, every thread receives own copy of scene and sampler,
     // lut used only to read from, so considered thread-safe
     // until the window is closed threads are waiting for tasks.
     // tasks placed into thread-safe queue(tasks_queue),
     // rendering results placed into another thread-safe queue(results_queue) of same type
-    RN::ThreadPool pool(threads_count, tasks_queue, scene, tracer, lut, results_queue);
+    RN::ThreadPool pool(threads_count, tasks_queue, scene, tracer, results_queue);
 
     // segments are rendering tasks/results, screen being split into segment_size x segment_size sized segments
     // segments being shuffled, ki krasivo olsun
@@ -217,14 +223,6 @@ int main()
 
     // main app loop
     while (!WindowShouldClose()) {
-        // TODO: move to RayOnApp
-        if (show_message) {
-            message_time_left -= GetFrameTime();
-            if (message_time_left <= 0.0f) {
-                show_message = false;
-            }
-        }
-
         Segment segment;
         Rectangle rec;
         while (results_queue.try_pop(segment)) {
@@ -239,20 +237,11 @@ int main()
         BeginDrawing();
         ClearBackground(RAYWHITE);
         DrawTexture(texture, 0, 0, WHITE);
-        if (show_message) {
-            DrawText(message_text.c_str(), 10, 10, 20, RED);
-        }
+        app.Run();
         EndDrawing();
 
         // TODO: move to RayOnApp
-        if (IsKeyPressed(KEY_S)) {
-            std::string file_name = GenerateFileName();
-            TakeScreenshot(file_name.c_str());
-
-            message_text = file_name + " saved!";
-            show_message = true;
-            message_time_left = message_duration;
-        }
+        app.HandleUserInput();
 
         // TODO: don't flush every frame
         fflush(stdout);
@@ -264,7 +253,7 @@ int main()
     printf("Time taken: %lld milliseconds\n", total_duration);
 
     printf("Samples per pixel: %i, step angle: %f, max steps: %i, max dist: %f, epsilon: %f\n", tracer.getSamplesPerPixel(), tracer.getStepAngle(), tracer.max_steps, tracer.max_distance, tracer.epsilon);
-    //printf("Stats: traces: %i, distance: %f, hits: %i, misses: %i\n", tracer.getTracesCount(), tracer.getDistanceMeter(), tracer.getHitsCount(), tracer.getMissesCount());
+    //printf("Stats: traces: %i, distance: %f, hits: %i, misses: %i\n", sampler.getTracesCount(), sampler.getDistanceMeter(), sampler.getHitsCount(), sampler.getMissesCount());
 
     // save logs
     logRenderStats(tracer, total_duration);
@@ -274,9 +263,6 @@ int main()
 
     // stop pool
     pool.stopIt();
-
-    // free memory
-    delete lut;
 
     UnloadTexture(texture);
 

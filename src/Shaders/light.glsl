@@ -8,14 +8,13 @@ in vec4 fragColor;
 out vec4 finalColor;
 
 uniform vec2 u_resolution;
-uniform vec2 u_mouse;
 
 //max count of reflections/refractions
-const float MAX_STEP = 25.0;
+const float MAX_STEP = 20.00;
 //maximum distance ray traveling
-const float MAX_DISTANCE = 5.5;
+const float MAX_DISTANCE = 1.0;
 
-const float EPSILON = 0.0001;
+const float EPSILON = 0.001;
 
 //samples per pixed
 const float SAMPLES = 64.0;
@@ -25,11 +24,39 @@ const float TWO_PI = 6.283185307179586476925286766559;
 
 //these both seems useles now
 const float BIAS = 0.000001;
-const float MAX_DEPTH = 10.0;
+const float MAX_DEPTH = 3.0;
 
-//global mouse position
-vec2  m;
+uniform sampler2D sdf_texture;
+uniform sampler2D noise_texture;
 
+const int MATERIALS_COUNT = 8;
+
+struct Material {
+    float reflectivity;
+    float eta;
+    vec3 emission;
+    vec3 absorption;
+};
+
+const Material red = Material(0.4, 0.7, vec3(1.0, 0.0, 0.0), vec3(0.0,1.0,1.0));
+const Material green = Material(0.4, 1.2,  vec3(0.0, 1.0, 0.0), vec3(1.0,0.0,1.0));
+const Material blue = Material(0.4, 1.2,  vec3(0.0, 0.0, 1.0), vec3(1.0,1.0,0.0));
+const Material white = Material(0.4, 1.2,  vec3(1.0, 1.0, 1.0), vec3(0.0,0.0,0.0));
+const Material black = Material(0.4, 1.2,  vec3(0.0, 0.0, 0.0), vec3(1.0,1.0,1.0));
+const Material yellow = Material(0.7, 1.2,  vec3(1.0, 1.0, 0.0), vec3(0.0,0.0,0.0));
+const Material cyan = Material(0.8, 1.2,  vec3(0.0, 1.0, 1.0), vec3(0.0,0.0,0.0));
+const Material last = Material(0.8, 1.2,  vec3(1.0, 0.0, 1.0), vec3(0.0,0.0,0.0));
+
+const Material mats[MATERIALS_COUNT] = {red, green, blue, white, black, yellow, cyan, last};
+
+const int RED_IDX   = 0;
+const int GREEN_IDX = 1;
+const int BLUE_IDX  = 2;
+const int WHITE_IDX = 3;
+const int BLACK_IDX = 4;
+const int YELLOW_IDX = 5;
+const int CYAN_IDX = 6;
+const int LAST_IDX = 7;
 
 const vec3 BLACK = vec3(0.0,0.0,0.0);
 const vec3 WHITE = vec3(1.0,1.0,1.0);
@@ -37,77 +64,29 @@ const vec3 WHITE = vec3(1.0,1.0,1.0);
 //result of scene calculation
 struct ssDot{
     float sd; //signed distance
-    float reflectivity; //reflectivity coef.
-    float eta; //refractivity coef.
-    vec3 emission; //emission color and strength
-    vec3 absorption; //absorption color and strength
+    int mat_idx; //material index
 };
 
-ssDot unionOp(ssDot a, ssDot b){
-    if (a.sd < b.sd){
-        return a;
-    }else{
-        return b;
-    }
+const float step_rad = TWO_PI / SAMPLES;
+
+float getSDF(vec2 p) {
+    vec4 color = texture(sdf_texture, p);
+
+    return color.x;
 }
 
-float fresnel(float cosi, float cost, float etai,float etat) {
-    float rs = (etat * cosi - etai * cost) / (etat * cosi + etai * cost);
-    float rp = (etai * cosi - etat * cost) / (etai * cosi + etat * cost);
-    return (rs * rs + rp * rp) * 0.5f;
-}
+vec2 getNoise(vec2 p) {
+    vec2 tmp_p = p;
 
-vec3 beerLambert(vec3 a, float d) {
-    return vec3(exp(-a.r * d), exp(-a.g * d), exp(-a.b * d));
-}
+//    tmp_p /= 2.0;
+//    tmp_p.x /= u_resolution.x / u_resolution.y;
+//    tmp_p += 0.5;
 
-float box(float x, float y, float cx, float cy, vec2 size) {
-    vec2 p = vec2(x-cx,y-cy);
+    vec4 color = texture2D(noise_texture, tmp_p);
 
-    //size -= vec2(radius);
-    vec2 d = abs(p) - size;
-    return max(-0.01, min(max(d.x, d.y), 0.0) + length(max(d, 0.0))) ;
-}
+    vec2 res = ((color.xy) - 0.5)* 2.0;
 
-float circle(float x,float y,float cx,float cy,float r){
-    return length(vec2(x-cx,y-cy))-r;
-}
-
-ssDot r1 = ssDot(0.0, 0.0,  0.31, vec3(0.0, 0.0, 0.0), vec3(0.8,0.6,0.0));
-ssDot r2 = ssDot(0.0, 1.0,  0.0,  vec3(1.0,0.0,0.0),   vec3(0.8,0.6,0.0));//
-ssDot r3 = ssDot(0.0, 0.10, 0.0,  vec3((0.0)),         vec3(1.0,1.0,1.0));
-ssDot r4 = ssDot(0.0, 0.50, 0.20, vec3(0.0,0.0,0.0),   vec3(1.0,1.0,1.0));
-ssDot r5 = ssDot(0.0, 0.50, 0.20, vec3(0.0,0.0,0.0),   vec3(1.0,1.0,1.0));
-ssDot r6 = ssDot(0.0, 0.50, 0.70, vec3(1.0,0.0,0.0),   vec3(1.0,1.0,1.0));
-ssDot r7 = ssDot(0.0, 0.50, 5.20, vec3(0.0,0.0,0.0),   vec3(1.0,1.0,1.0));
-ssDot r8 = ssDot(0.0, 0.50, 0.0, vec3(1.0,1.0,0.0),   vec3(1.0,1.0,1.0));
-ssDot r9 = ssDot(0.0, 0.50, 0.0, vec3(0.50,0.50,1.0),   vec3(1.0,1.0,1.0));
-
-void scene_update(float x,float y){
-    r1.sd = circle(x, y, 0.5, 0.5, 0.125);
-    //ssDot r2 = ssDot(circle(x,y,m.x,m.y, 0.25),  2.0, 1.2,vec3(0.7, 0.1, 0.5), vec3(0.8,0.6,0.0));
-    r2.sd = circle(x,y,m.x,m.y, 0.1);
-    r3.sd = circle(x,y,-0.3,0.0, 0.1);
-    r4.sd = box(x,y,-1.0,-0.1,vec2(0.2,0.4));
-    r5.sd = circle(x,y,-0.3,0.4, 0.1);
-    r6.sd = circle(x,y, 0.4,-0.8, 0.1);
-    r7.sd = circle(x,y, 0.4,-0.5, 0.1);
-    r8.sd = box(x,y,1.0,0.1,vec2(0.1,0.2));
-    r9.sd = box(x,y,0.1,0.1,vec2(0.2,0.1));
-}
-
-
-ssDot scene(float x,float y){
-    scene_update(x,y);
-    ssDot r = unionOp(r1,r2);
-    r = unionOp(r, r3);
-    r = unionOp(r, r4);
-    r = unionOp(r, r5);
-    r = unionOp(r, r6);
-    r = unionOp(r, r7);
-    r  = unionOp(r, r8);
-    r  = unionOp(r, r9);
-    return r;
+    return res;
 }
 
 float random (in vec2 _st) {
@@ -116,54 +95,89 @@ float random (in vec2 _st) {
     43758.5453123);
 }
 
-
 vec2 calculateNormal(vec2 p) {
-    const float h = 0.01; // Малое значение для смещения
+    const float h = 0.0007; // Малое значение для смещения
     const vec2 dx = vec2(h, 0.0);
     const vec2 dy = vec2(0.0, h);
+    const vec2 dxy = vec2(h, h);
 
-    // Вычисляем градиент SDF, используя центральные разности
-    float sd = scene(p.x, p.y).sd;
-    float gx = scene(p.x + dx.x, p.y).sd - scene(p.x - dx.x, p.y).sd;
-    float gy = scene(p.x, p.y + dy.y).sd - scene(p.x, p.y - dy.y).sd;
+    // Вычисляем градиенты, используя центральные разности
+    float sd = getSDF(p);
 
-    // Нормализуем градиент, чтобы получить нормаль
-    vec2 n = normalize(vec2(gx, gy));
+    // Градиенты по X и Y
+    float gx = (getSDF(p + dx) - getSDF(p - dx)) / (2.0 * h);
+    float gy = (getSDF(p + dy) - getSDF(p - dy)) / (2.0 * h);
+
+    // Диагональные градиенты
+    float gxy = (getSDF(p + dxy) - getSDF(p - dxy)) / (2.0 * sqrt(2.0) * h);
+    float gyx = (getSDF(vec2(p.x + dx.x, p.y - dy.y)) - getSDF(vec2(p.x - dx.x, p.y + dy.y))) / (2.0 * sqrt(2.0) * h);
+
+    // Среднее значение градиентов для более плавного результата
+    vec2 n = normalize(vec2(gx + (gxy + gyx) / 2.0, gy + (gxy + gyx) / 2.0));
 
     // Инвертируем нормаль, если точка находится внутри объекта
     return sd > 0.0 ? n : -n;
 }
 
-vec3 trace(vec2 op, vec2 dp, float depth) {
-    float t = 0.0;
-
+vec3 new_trace(vec2 p, vec2 dir) {
     vec3 sum = vec3(0.0);
 
-    ssDot r;
+    float traveled = 0.0;
 
-    ssDot r0 = scene(op.x, op.y);
+    vec2 tmp_p = p;
 
-    r = r0;
+//    tmp_p /= 2.0;
+//    tmp_p.x /= u_resolution.x / u_resolution.y;
+//    tmp_p += 0.5;
 
-    for (float i = 0.0; i < MAX_STEP && t < MAX_DISTANCE; i++) {
+    float color_divider = 0.0;
 
-        op = op + dp*(r.sd);
+    vec4 res = texture(sdf_texture,tmp_p);
 
+    res.x /= u_resolution.x;
 
-        r = scene(op.x, op.y);
+    for (float i = 0.0; i < MAX_STEP && traveled < MAX_DISTANCE; i++) {
 
-        t += abs(r.sd);
+        if (abs(res.x) < EPSILON) {
 
-        if (abs(r.sd) < EPSILON) {
-            return r.emission;
+            int index = int(res.y);
+
+            sum += mats[index].emission * mats[index].reflectivity;
+
+            return sum;
+
+            vec2 normal = calculateNormal(p);
+
+            dir = reflect(dir, normal);
+
+            color_divider++;
         }
+
+        traveled += abs(res.x);
+
+        //tmp_dir.y *= resolution.x/resolution.y;
+
+        p = p + dir*abs(res.x);
+
+        vec2 tmp_p = p;
+
+//        tmp_p /= 2.0;
+//        tmp_p.x /= u_resolution.x / u_resolution.y;
+//        tmp_p += 0.5;
+
+        //tmp_p = (p + 1.0) / 2.0;
+
+
+        res = texture(sdf_texture, tmp_p);
+
+        res.x /= u_resolution.x;
     }
 
-    return (sum);
+    color_divider = max(1.0, color_divider);
+
+    return sum / color_divider;
 }
 
-
-// test
 float angle_step = TWO_PI / SAMPLES;
 
 vec3 sampleFun(vec2 p) {
@@ -171,77 +185,54 @@ vec3 sampleFun(vec2 p) {
 
     float a = 0.0;
 
-    vec2 dir;
+    vec2 tmp_p = p;
 
-    //ssDot r = scene(p.x, p.y);
-
-    vec3 bonus = BLACK;
-
-    float i = 0.0;
+//    tmp_p /= 2.0;
+//    tmp_p.x /= u_resolution.x / u_resolution.y;
+//    tmp_p += 0.5;
 
 
-    for (i = 0.0; i < SAMPLES; i++) {
-        float rand_a = random((p+i)) - 0.5;
+    vec4 res = texture(sdf_texture,tmp_p);
 
-        float ddXa = dFdx(a);
-        float ddYa = dFdy(a);
+//    if (res.x < EPSILON){
+//        int index = int(res.y);
+//
+//        return  mats[index].emission;
+//    }
 
-        //rand_a  += (ddXa+ddYa) * 0.5;
+    for (float i = 0.0; i < SAMPLES; i++) {
+        vec2 rr = getNoise(p);
 
-        dir = normalize(vec2(cos(a + rand_a * 0.5), sin(a + rand_a * 0.5)));
+        vec2 dir = normalize(vec2(cos( a + rr.x), sin( a + rr.x)));
 
-        //dir = normalize(vec2(cos(a), sin(a)));
+        //dir += rr;
 
-        sum = sum + trace(p, dir , 0.0);
+        dir = normalize(dir);
+
+        sum = sum + new_trace(p,  dir);
+
+//        float sd = getSDF(tmp_p);
+//
+//        if (sd < EPSILON){
+//            sum.xy = calculateNormal(tmp_p);
+//        }else{
+//            sum = BLACK;
+//        }
+//
+//        return sum;
 
         a += angle_step;
-
-        // if( length(sum.xyz) > TWO_PI) break;
     }
 
-    return sum/(i + 1.0);
+    return sum/SAMPLES;
+
 }
 
 void main(){
+    //vec4 color = texture(sdf_texture, fragTexCoord);
     vec2 uv = fragTexCoord;
-    uv -= 0.5;
-    uv.x *= u_resolution.x/u_resolution.y;// / u_resolution.xy;
-    uv *= 2.0;
 
-    //uv *= 2.0;
+    vec4 color = vec4(sampleFun(uv), 1.0);
 
-    //uv -= 1.0;
-
-    // Calculate derivatives of UV coordinates
-    vec2 ddxUV = dFdx(uv);
-    vec2 ddyUV = dFdy(uv);
-
-    // Use derivatives to adjust UV coordinates for antialiasing
-    vec2 aaUV = uv + (ddxUV + ddyUV);
-
-    m  = (u_mouse.xy) / u_resolution.xy;
-
-    m -= 0.5;
-    m.x *= u_resolution.x/u_resolution.y;
-    m *= 2.0;
-
-    // scene pixel color
-    //vec3 col = (sampleFun(aaUV));
-
-    float prox = length(uv - m);
-
-    ssDot sv = scene(uv.x, uv.y);
-
-    vec3 col = (sampleFun(uv));
-//    vec3 col = vec3(sv.sd);
-//
-//    if (sv.sd < EPSILON){
-//        col.r = 1.0;
-//    }
-
-
-    //col = step(0.5 - prox, col);
-
-    // Output to screen
-    finalColor = vec4(col, 1.0);
+    finalColor = color;
 }

@@ -36,11 +36,15 @@ void RN::RayOnApp::HandleUserInput() {
     if (IsKeyPressed(KEY_S)) {
         MakeScreenshot();
     }
+    if (IsKeyPressed(KEY_I)) {
+        ShowInfo();
+    }
 }
 
 void RN::RayOnApp::ShowInfo() {
     std::stringstream top_info;
-    top_info << "SPP: " << settings.SamplesPerPixel() << ", max steps: "<< settings.MaxSteps() << ", max dist: " << settings.MaxDistance() << ", epsilon: " << settings.Epsilon();
+    top_info << "SPP: " << settings.SamplesPerPixel() << ", max steps: "<< settings.MaxSteps() << ", max dist: " << settings.MaxDistance() << ", epsilon: " << settings.Epsilon() << ", depth: " << settings.MaxDepth();
+    ShowMessage(top_info.str());
 }
 
 std::string RN::RayOnApp::GenerateScreenshotFileName() {
@@ -68,20 +72,36 @@ void RN::RayOnApp::MakeScreenshot() {
 }
 
 void RN::RayOnApp::Run() {
-    if (show_message) {
-        message_time_left -= GetFrameTime();
-        if (message_time_left <= 0.0f) {
-            show_message = false;
-        }
-    }
-
-    if (show_message) {
-        DrawText(message_text.c_str(), 10, 10, 20, RED);
-    }
+    proceedMessages();
 }
 
-void RN::RayOnApp::ShowMessage(const std::string m) {
-    message_text = m;
-    show_message = true;
-    message_time_left = MESSAGE_DURATION;
+void RN::RayOnApp::ShowMessage(const std::string &m) {
+    TextMessage msg_obj;
+
+    msg_obj.message = m;
+    msg_obj.ttl = MESSAGE_DURATION;
+    msg_obj.color = RED;
+
+    messages_pool.push_back(msg_obj);
+}
+
+void RN::RayOnApp::proceedMessages() {
+    unsigned int row = 0;
+    // iteration in reverse order, to safely delete messages
+    for (int i = messages_pool.size() - 1; i >= 0; --i) {
+        //
+        messages_pool[i].ttl -= GetFrameTime();
+
+        // if ttl is ended then bye-bye message!
+        if (messages_pool[i].ttl <= 0) {
+            messages_pool.erase(messages_pool.begin() + i);
+        } else {
+            DrawText(messages_pool[i].message.c_str(), 10, 10 + row * MESSAGE_ROW_HEIGHT, MESSAGE_FONT_SIZE, messages_pool[i].color);
+            row++;
+        }
+        // if maximum messages count shown then don't proceed others
+        if (row >= MESSAGE_ROWS_MAX){
+            return;
+        }
+    }
 }

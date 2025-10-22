@@ -19,8 +19,8 @@
  *      SDFCircle
  *
  */
-#ifndef RAYLIB_TEMPLATE_SFCIRCLE_H
-#define RAYLIB_TEMPLATE_SFCIRCLE_H
+#ifndef RAYON_SFCIRCLE_H
+#define RAYON_SFCIRCLE_H
 
 #include "SFDrawable.h"
 
@@ -31,7 +31,7 @@ namespace RN {
         float radius;
         vec2d center;
 
-        SFCircle(float r, vec2d c, std::shared_ptr<Material> &mat): SFDrawable(mat), radius(r), center(c){}
+        SFCircle(float r, vec2d c, std::shared_ptr<RN::Materials::Material> &mat): SFDrawable(mat), radius(r), center(c){}
 
         SFCircle(const SFCircle &other) : SFDrawable(other) {
             radius = other.radius;
@@ -50,4 +50,4 @@ namespace RN {
 }
 
 
-#endif //RAYLIB_TEMPLATE_SFCIRCLE_H
+#endif //RAYON_SFCIRCLE_H

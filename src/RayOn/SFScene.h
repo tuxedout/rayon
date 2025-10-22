@@ -16,12 +16,12 @@
  *
  *      RayOn - simple rig to play with rays
  *
- *      Scene contains vector of drawable objects,
+ *      SFScene contains vector of drawable objects,
  *      takes care
  *
  */
-#ifndef RAYLIB_TEMPLATE_SCENE_H
-#define RAYLIB_TEMPLATE_SCENE_H
+#ifndef RAYON_SFSCENE_H
+#define RAYON_SFSCENE_H
 
 #include <vector>
 #include "SFDrawable.h"
@@ -31,9 +31,29 @@
 #include <memory>
 
 namespace RN {
-    class Scene {
+    class SFScene {
     public:
-        Scene(int _width_px, int _height_px): width_px(_width_px), height_px(_height_px) {
+        SFScene& operator=(const SFScene& other) {
+            if (this != &other) {
+                // Direct copy of simple types and objects that support copy assignment
+                width_px = other.width_px;
+                height_px = other.height_px;
+                aspect = other.aspect;
+                width = other.width;
+                height = other.height;
+                max_coords = other.max_coords;
+                min_coords = other.min_coords;
+
+                // For container types like std::vector, copying the entire container is usually what you want,
+                // but consider if deep copy of pointed-to objects is needed instead.
+                // Here, std::shared_ptr will handle the reference counting automatically.
+                children = other.children;
+            }
+            return *this;
+        }
+
+
+        SFScene(int _width_px, int _height_px): width_px(_width_px), height_px(_height_px) {
             aspect = static_cast<float>(width_px) / static_cast<float>(height_px);
 
             height = 1.0;
@@ -44,7 +64,7 @@ namespace RN {
             min_coords = {-width/2.0f, -height / 2.0};
         }
 
-        Scene(const Scene &other){
+        SFScene(const SFScene &other){
             height = other.height;
             width = other.width;
             aspect = other.aspect;
@@ -59,13 +79,14 @@ namespace RN {
 
         [[nodiscard]] vec2d sceneCoords(const vec2i &px) const {
             return {
-                    (px.x - width_px / 2.0) / (height_px - 1),
-                    (px.y - height_px / 2.0) / (height_px - 1)};
+                    (0.5+px.x - (float)width_px / 2.0) / height_px,
+                    (0.5+px.y - (float)height_px / 2.0) / height_px
+            };
         }
 
         [[nodiscard]] vec2i pxCoords(const vec2d &scene_coords) const {
-            int x = static_cast<int>((scene_coords.x * (height_px - 1)) + (width_px / 2.0));
-            int y = static_cast<int>((scene_coords.y * (height_px - 1)) + (height_px / 2.0));
+            int x = static_cast<int>((scene_coords.x * (height_px)) + (width_px / 2.0)-0.5);
+            int y = static_cast<int>((scene_coords.y * (height_px)) + (height_px / 2.0)-0.5);
 
             x = std::max(0, std::min(x, width_px - 1));
             y = std::max(0, std::min(y, height_px - 1));
@@ -109,4 +130,4 @@ namespace RN {
     };
 }
 
-#endif //RAYLIB_TEMPLATE_SCENE_H
+#endif //RAYON_SFSCENE_H

@@ -19,8 +19,8 @@
  *      SDFBox
  *
  */
-#ifndef RAYLIB_TEMPLATE_SFBOX_H
-#define RAYLIB_TEMPLATE_SFBOX_H
+#ifndef RAYON_SFBOX_H
+#define RAYON_SFBOX_H
 
 #include "SFDrawable.h"
 
@@ -61,4 +61,4 @@ namespace RN {
 
 } // RN
 
-#endif //RAYLIB_TEMPLATE_SFBOX_H
+#endif //RAYON_SFBOX_H

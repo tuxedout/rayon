@@ -1,33 +1,30 @@
-# Simple and portable CMake template for raylib
+# RayOn - simple rig to play with rays
 
-This is a very basic project template for raylib using CMake and has been tested with Visual Studio, Visual Studio Code and CLion.
+RayOn is a simple 2D ray sampler written in C++. The project is currently in development and more features are being added over time. At the moment, calculations are done at the CPU level which allows for easy debugging and understanding of ray tracing computations.
 
-The raylib source code is included in the libs folder as it is much easier than including prebuilt binaries for every platform and configuration.
+## Features
 
-Building from the cmake file will build both raylib and `src/main.c` which includes a basic example of a raylib program.
+- 2D ray tracing
+- Calculations done at the CPU level
 
-The example in `src/main.c` uses an example image located in the `assets` folder.
+## Getting started
 
-The absolute path to the assets folder is defined by a macro `ASSETS_PATH` in the CMake file automatically which is useful during development. If you plan on releasing or sharing your game consider manually setting the value of the `ASSETS_PATH` macro.
+Follow these instructions to get the project up and running on your local machine.
 
-## How to use with C++
-To use with C++ simply rename `main.c` to `main.cpp` and then change the following lines in CMakelists.txt:
+### Prerequisites
 
-From:
-```
-project(raylib_template C)
+Make sure you have the required development environment and dependencies installed:
 
-set(CMAKE_C_STANDARD 99)
+- Required CMake version: (specify version here)
+- Required Libraries: Raylib(used to show texture)
 
-add_executable(raylib_template src/main.c)
-```
+### Building
 
-To:
-```
-project(raylib_template CXX)
+1. Create a build directory in the project root: `mkdir build`
+2. Navigate to the build directory: `cd build`
+3. Run CMake: `cmake ..`
+4. Build the project: `make`
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+## Usage
 
-add_executable(raylib_template src/main.cpp)
-```
+Explain here how to use your project.

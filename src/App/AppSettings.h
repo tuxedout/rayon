@@ -29,7 +29,7 @@
 #include "../json.hpp"
 #include <fstream>
 #include <vector>
-#include "../Misc/Interval.h"
+#include "../Misc/StepInterval.h"
 
 const double RN_APP_MAX_DISTANCE = 15.0;
 const int RN_APP_SAMPLES_P_PIX = 16;
@@ -121,6 +121,29 @@ namespace RN {
             return epsilon.stepDown();
         }
 
+        void IncreaseSamplesPerPixel() {
+            auto it = std::find(SPP_OPTS.begin(), SPP_OPTS.end(), samples_per_pixel);
+            if (it != SPP_OPTS.end()) {
+                if (++it == SPP_OPTS.end()) {
+                    // Если достигли конца, начинаем сначала
+                    samples_per_pixel = SPP_OPTS.front();
+                } else {
+                    samples_per_pixel = *it;
+                }
+            }
+        }
+
+        void DecreaseSamplesPerPixel() {
+            auto it = std::find(SPP_OPTS.begin(), SPP_OPTS.end(), samples_per_pixel);
+            if (it != SPP_OPTS.end()) {
+                if (it == SPP_OPTS.begin()) {
+                    samples_per_pixel = SPP_OPTS.back();
+                } else {
+                    samples_per_pixel = *(--it);
+                }
+            }
+        }
+
         /* load'n'save to file */
         void loadSettings() {
             std::ifstream settingsFile(settings_file_path);
@@ -173,11 +196,11 @@ namespace RN {
         std::vector<int> SPP_OPTS = {4, 8, 16, 32, 64, 128, 256, 512, 1024};
         //std::vector<int> STEPS_OPTS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 16, 32, 64, 128, 256};
 
-        Interval<int> max_steps = {RN_APP_MAX_STEPS, 1, 256, 1};
-        Interval<int> max_depth = {RN_APP_MAX_DEPTH, 0, 30, 1};
-        Interval<double> max_distance = {RN_APP_MAX_DISTANCE, 0.1, 10.0, 0.1};
-        Interval<double> epsilon = {RN_APP_EPSILON, 0.0, 0.1, 0.0001};
-        Interval<double> bias = {RN_APP_BIAS, 0.0, 0.001, 0.0000001};
+        StepInterval<int> max_steps = {RN_APP_MAX_STEPS, 1, 256, 1};
+        StepInterval<int> max_depth = {RN_APP_MAX_DEPTH, 0, 30, 1};
+        StepInterval<double> max_distance = {RN_APP_MAX_DISTANCE, 0.1, 10.0, 0.1};
+        StepInterval<double> epsilon = {RN_APP_EPSILON, 0.0, 0.1, 0.0001};
+        StepInterval<double> bias = {RN_APP_BIAS, 0.0, 0.001, 0.0000001};
     };
 
 } // RN

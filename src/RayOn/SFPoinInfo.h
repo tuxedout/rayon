@@ -19,28 +19,30 @@
  *      SFPoinInfo.h - contains info about distance field point
  *
  */
-#ifndef RAYLIB_TEMPLATE_SFPOININFO_H
-#define RAYLIB_TEMPLATE_SFPOININFO_H
+#ifndef RAYON_SFPOININFO_H
+#define RAYON_SFPOININFO_H
 
-#include "Material.h"
+#include "Materials/Material.h"
 #include "SFDrawable.h"
 #include <memory>
 
 namespace RN {
     class SFPoinInfo {
     public:
-        SFPoinInfo(): distance(0), item(nullptr){};
-        SFPoinInfo(double d, SFDrawable *i): distance(d), item(i){};
+        SFPoinInfo(): distance(0), distance2(0), item(nullptr), item2(nullptr) {};
+        SFPoinInfo(double d, SFDrawable *i): distance(d),  distance2(0), item(i),item2(nullptr) {};
 
         SFPoinInfo(const SFPoinInfo &hi) = default;
 
         // distance to nearest object
         double distance;
+        double distance2;
 
         // pointer to nearest object
         SFDrawable *item;
+        SFDrawable *item2;
     };
 }
 
 
-#endif //RAYLIB_TEMPLATE_SFPOININFO_H
+#endif //RAYON_SFPOININFO_H

@@ -24,10 +24,25 @@
 #define RAYON_CPP_CMAKE_RAYONAPP_H
 
 #include "AppSettings.h"
+#include "../RayOn/Vec2.h"
+#include "raylib.h"
 
 namespace RN {
+    /*
+     * defaults and constants
+     */
     const std::string SCREENSHOTS_FOLDER = "screenshots";
+    // messages related
     const float MESSAGE_DURATION = 2.0;
+    const unsigned int MESSAGE_ROW_HEIGHT = 16;
+    const unsigned int MESSAGE_FONT_SIZE = 16;
+    const unsigned int MESSAGE_ROWS_MAX   = 10;
+
+    struct TextMessage{
+        std::string message;
+        double ttl;
+        Color color;
+    };
 
     enum RayOnAppMode {
         start,
@@ -55,9 +70,11 @@ namespace RN {
          //         &
          // ! EndDrawing();
         void Run();
+        void proceedMessages();
     private:
         void MakeScreenshot();
         static void EnsureScreenshotsDirExists();
+
         std::string GenerateScreenshotFileName();
 
         // current mode
@@ -65,15 +82,16 @@ namespace RN {
 
         // rendering settings
         AppSettings settings;
-
         /*
          * stuff to show message
          */
         std::string message_text;
         bool show_message = false;
-        float message_time_left = 2.0;
 
-        void ShowMessage(const std::string m);
+        float message_time_left = 2.0;
+        void ShowMessage(const std::string &m);
+
+        std::vector<TextMessage> messages_pool;
 
         void ShowInfo();
     };

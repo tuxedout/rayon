@@ -32,50 +32,73 @@ namespace RN {
     public:
         T x, y;
         vec2(T _x, T _y) :
-                x((_x)),
-                y((_y)) {}
+                x(_x),
+                y(_y) {}
 
         vec2(const vec2 &other) = default;
 
 
         vec2(): x(0), y(0) {}
 
-        [[nodiscard]] vec2 abs() const {
+        [[nodiscard]] inline vec2 abs() const {
             return {std::abs(x), std::abs(y)};
         }
 
-        [[nodiscard]] static vec2 abs(const vec2 v) {
+        [[nodiscard]] inline static vec2 abs(const vec2 v) {
             return {std::abs(v.x), std::abs(v.y)};
         }
 
-        void normalize() {
+        inline vec2 &normalize() {
             auto len = length();
-            if (len == 0) return;
+            if (len == 0) return *this;
             x = ((x) / len);
             y = ((y) / len);
+
+            return *this;
         }
 
-        vec2 operator+(const vec2& other) const {
+        inline vec2 &operator+=(const vec2 &other) const {
+            x += other.x;
+            y += other.y;
+
+            return *this;
+        }
+
+        inline vec2 &operator+=(const double &other) const {
+            x += other;
+            y += other;
+
+            return *this;
+        }
+
+        inline vec2 &operator*=(const double &other) const {
+            x *= other;
+            y *= other;
+
+            return *this;
+        }
+
+        inline vec2 operator+(const vec2& other) const {
             return {(x + other.x), (y + other.y) };
         }
 
-        vec2 operator+(const float &other) const {
+        inline vec2 operator+(const float &other) const {
             return {x + (other), y + (other) };
         }
 
-        vec2 operator-(const vec2& other) const {
+        inline vec2 operator-(const vec2& other) const {
             return {(x - other.x), (y - other.y) };
         }
 
-        vec2 operator-(const float &other) const {
+        inline vec2 operator-(const float &other) const {
             return {x - (other), y - (other) };
         }
 
-        vec2 operator/(const T &divider) const {
+        inline vec2 operator/(const T &divider) const {
             return {x / (divider), y / (divider) };
         }
 
-        vec2 operator*(const T &multiplier) const {
+        inline vec2 operator*(const T &multiplier) const {
             return {(x * (multiplier)), (y * (multiplier)) };
         }
 
@@ -83,45 +106,49 @@ namespace RN {
             return x == other.x && y == other.y;
         }
 
-        void add(const vec2 &a) {
+        inline void add(const vec2 &a) {
             x += a.x;
             y += a.y;
         }
 
-        void add(const T &a) {
+        inline void add(const T &a) {
             x += (a) ;
             y += (a);
         }
 
-        void sub(const vec2 &a) {
+        inline void sub(const vec2 &a) {
             x -= a.x;
             y -= a.y;
         }
 
-        void sub(const T &a) {
+        inline void sub(const T &a) {
             x -= (a);
             y -= (a);
         }
 
-        void multiply(const T &a) {
+        inline vec2<double> multiply(const T &a) {
             x *= (a);
             y *= (a);
+
+            return *this;
         }
 
-        void div(const T &a) {
+        vec2 *div(const T &a) {
             x /= (a);
             y /= (a);
+
+            return *this;
         }
 
-        [[nodiscard]] static T dot(const vec2 &a, const vec2 &b){
+        [[nodiscard]] inline static T dot(const vec2 &a, const vec2 &b){
             return ((a.x)*b.x + (a.y)*b.y);
         }
 
-        [[nodiscard]] T dot(const vec2 &a) const{
+        [[nodiscard]] inline T dot(const vec2 &a) const{
             return ((a.x)*x + (a.y)*y);
         }
 
-        [[nodiscard]] T length() const {
+        [[nodiscard]] inline T length() const {
             auto lengthSquared = (x ) * (x ) + (y ) * (y );
 
             return std::sqrt(lengthSquared);
@@ -145,9 +172,15 @@ namespace RN {
             return std::sqrt(distSquared);
         }
 
-        void max(const T &param) {
+        inline void max(const T &param) {
             x = x > param ? x : param;
             y = y > param ? y : param;
+        }
+
+        inline static void reflect(vec2 &i, const vec2 &n) {
+            double idotn2 = (i.x * n.x + i.y * n.y) * 2.0f;
+            i.x = i.x - idotn2 * n.x;
+            i.y = i.y - idotn2 * n.y;
         }
     };
 

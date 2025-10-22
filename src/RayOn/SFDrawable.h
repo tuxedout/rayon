@@ -16,10 +16,10 @@
 //      RayOn - simple rig to play with rays
 //                                                                                                                                                
 //
-#ifndef RAYLIB_TEMPLATE_SFDRAWABLE_H
-#define RAYLIB_TEMPLATE_SFDRAWABLE_H
+#ifndef RAYON_SFDRAWABLE_H
+#define RAYON_SFDRAWABLE_H
 
-#include "Material.h"
+#include "Materials/Material.h"
 #include "Vec2.h"
 #include <memory>
 
@@ -33,7 +33,7 @@ namespace RN {
 
     class SFDrawable {
     public:
-        explicit SFDrawable(std::shared_ptr<Material> &mat): material(mat){}
+        SFDrawable(std::shared_ptr<RN::Materials::Material> &mat): material(mat){}
 
         SFDrawable(const SFDrawable &other){
             material = other.material;
@@ -45,9 +45,9 @@ namespace RN {
 
         [[nodiscard]] virtual SFDrawableType type() const {return generic;}
 
-        std::shared_ptr<Material> material;
+        std::shared_ptr<RN::Materials::Material> material;
     };
 }
 
 
-#endif //RAYLIB_TEMPLATE_SFDRAWABLE_H
+#endif //RAYON_SFDRAWABLE_H

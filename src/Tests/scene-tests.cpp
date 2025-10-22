@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <gtest/gtest.h>
-#include "../RayOn/Scene.h"
+#include "../RayOn/SFScene.h"
 
 const int screen_width = 1400;
 const int screen_height = 700;

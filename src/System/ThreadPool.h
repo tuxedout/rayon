@@ -22,7 +22,7 @@
  *
  *      heart of parallelism, pool of rendering threads
  *      creates requested count of threads,
- *      every thread receives own copy of scene and tracer,
+ *      every thread receives own copy of scene and sampler,
  *
  *      lut used only to read from, so considered thread-safe
  *
@@ -32,8 +32,8 @@
  *      task and rendering results managed by Segment class
  */
 
-#ifndef RAYLIB_TEMPLATE_THREADPOOL_H
-#define RAYLIB_TEMPLATE_THREADPOOL_H
+#ifndef RAYON_THREADPOOL_H
+#define RAYON_THREADPOOL_H
 
 #include <vector>
 #include <thread>
@@ -43,10 +43,12 @@
 #include <iostream>
 
 #include "Segment.h"
+#include "../RayOn/SFScene.h"
+#include "../RayOn/SFSampler.h"
 
 namespace RN {
     // execute rendering task and save results
-    void RenderSegment(Segment& segment, const RN::Scene& scene, RN::SFSTracer& _tracer, SDFLUT *lut, ThreadSafeQueue<Segment>& results_queue) {
+    void RenderSegment(Segment& segment, const RN::SFScene& scene, RN::SFSampler& _tracer, const SDFLUT *lut, ThreadSafeQueue<Segment>& results_queue) {
 
         RN::vec2d tmp_point;
 
@@ -60,6 +62,10 @@ namespace RN {
 
                 // render point
                 tmp_color = _tracer.sample(tmp_point, scene, lut);
+
+                if (tmp_color.x != tmp_color.x) {tmp_color.x = 0;}
+                if (tmp_color.y != tmp_color.y) {tmp_color.y = 0;}
+                if (tmp_color.z != tmp_color.z) {tmp_color.z = 0;}
 
                 // save data in format suitable for texture
                 segment.data[y * segment.width + x].r = (int) (tmp_color.x * 255);
@@ -78,13 +84,16 @@ namespace RN {
 
     class ThreadPool {
     public:
-        ThreadPool(size_t threads, ThreadSafeQueue<Segment>& taskQueue, RN::Scene& scene, RN::SFSTracer& tracer, RN::SDFLUT* lut, ThreadSafeQueue<Segment>& resultQueue):
-        tasksQueue(taskQueue), scene(scene), tracer(tracer), lut(lut), queue(resultQueue), stop(false) {
+        ThreadPool(size_t threads, ThreadSafeQueue<Segment>& taskQueue, RN::SFScene& scene, RN::SFSampler& tracer, ThreadSafeQueue<Segment>& resultQueue):
+        tasksQueue(taskQueue), scene(scene), tracer(tracer), queue(resultQueue), stop(false) {
+
+            const RN::SDFLUT lut(scene);
+
             for (size_t i = 0; i < threads; ++i) {
-                workers.emplace_back([this] {
+                workers.emplace_back([this, lut] {
                     // Create copies for each thread
-                    RN::SFSTracer localTracer = this->tracer;
-                    RN::Scene localScene = this->scene;
+                    RN::SFSampler localTracer = this->tracer;
+                    RN::SFScene localScene = this->scene;
 
                     while (true) {
                         Segment segment;
@@ -94,14 +103,14 @@ namespace RN {
 //                                // Wait until stop is true or there are tasks available
 //                                return this->stop || !this->tasks_queue.empty();
 //                            });
-                            if (this->stop && this->tasksQueue.empty())
+                            if (this->stop)
                                 break; // Exit loop if stop is true and queue is empty
                             if (!this->tasksQueue.try_pop(segment)) {
                                 continue; // If nothing was popped, go back to waiting
                             }
                         }
-                        // sse copies of scene and tracer with the shared lut to render the segment
-                        RenderSegment(segment, localScene, localTracer, this->lut, this->queue);
+                        // sse copies of scene and sampler with the shared lut to render the segment
+                        RenderSegment(segment, localScene, localTracer, &lut, this->queue);
                     }
                 });
             }
@@ -126,11 +135,8 @@ namespace RN {
         std::vector<std::thread> workers;
 
 
-        RN::Scene& scene;
-        RN::SFSTracer& tracer;
-
-        // shared, used only to read data from
-        RN::SDFLUT* lut;
+        RN::SFScene& scene;
+        RN::SFSampler& tracer;
 
         ThreadSafeQueue<Segment>& tasksQueue;
         ThreadSafeQueue<Segment>& queue;
@@ -143,4 +149,4 @@ namespace RN {
     };
 } // RN
 
-#endif //RAYLIB_TEMPLATE_THREADPOOL_H
+#endif //RAYON_THREADPOOL_H

@@ -19,8 +19,8 @@
  *      Segment structure that contains data needed to define rendering task and represent it's results
  *
  */
-#ifndef RAYLIB_TEMPLATE_SEGMENT_H
-#define RAYLIB_TEMPLATE_SEGMENT_H
+#ifndef RAYON_SEGMENT_H
+#define RAYON_SEGMENT_H
 
 #include <cstdio>
 #include <chrono>
@@ -84,4 +84,4 @@ struct Segment {
 };
 
 
-#endif //RAYLIB_TEMPLATE_SEGMENT_H
+#endif //RAYON_SEGMENT_H
